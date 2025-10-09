@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure SMB File Browser</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-cloud"></i> Azure SMB File Browser</h1>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Checking connection...</span>
+                </div>
+            </div>
+        </header>
+
+        <nav class="breadcrumb" id="breadcrumb">
+            <div class="breadcrumb-content">
+                <i class="fas fa-home"></i>
+                <span class="breadcrumb-item active" data-path="" id="rootBreadcrumb">Root</span>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-secondary" id="refreshBtn">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                    <button class="btn btn-secondary" id="backBtn" disabled>
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                </div>
+                <div class="toolbar-right">
+                    <div class="view-toggle">
+                        <button class="btn btn-sm active" id="listViewBtn">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button class="btn btn-sm" id="gridViewBtn">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading...</span>
+                </div>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;">
+                <div class="error-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error</h3>
+                    <p id="errorText"></p>
+                    <button class="btn btn-primary" id="retryBtn">Try Again</button>
+                </div>
+            </div>
+
+            <div class="file-browser" id="fileBrowser">
+                <div class="file-list" id="fileList">
+                    <!-- Files and folders will be populated here -->
+                </div>
+                
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-content">
+                        <i class="fas fa-folder-open"></i>
+                        <h3>Empty Folder</h3>
+                        <p id="emptyStateMessage">This folder contains no files or subdirectories.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 Azure SMB File Browser</p>
+                <div class="footer-stats">
+                    <span id="itemCount">0 items</span>
+                    <span class="separator">•</span>
+                    <span id="currentPath">Root</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- File Info Modal -->
+    <div class="modal" id="fileInfoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> File Information</h3>
+                <button class="modal-close" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="fileInfoContent">
+                <!-- File info will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closeModalBtn">Close</button>
+                <button class="btn btn-primary" id="downloadFromModal">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div class="modal preview-modal" id="filePreviewModal">
+        <div class="modal-content preview-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> <span id="previewFileName">File Preview</span></h3>
+                <button class="modal-close" id="closePreviewModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body preview-modal-body" id="filePreviewContent">
+                <!-- File preview will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closePreviewModalBtn">Close</button>
+                <button class="btn btn-primary" id="downloadFromPreview">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="btn btn-secondary" id="showInfoFromPreview">
+                    <i class="fas fa-info"></i> Info
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
