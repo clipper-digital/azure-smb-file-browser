@@ -154,13 +154,35 @@ const supportsThumbnail = (fileName) => {
     const ext = fileName.split('.').pop().toLowerCase();
     const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg'];
     const pdfExts = ['pdf'];
-    return imageExts.includes(ext) || pdfExts.includes(ext);
+    
+    // For images, always support thumbnails
+    if (imageExts.includes(ext)) {
+        return true;
+    }
+    
+    // For PDFs, only support thumbnails if PDF.js is available
+    if (pdfExts.includes(ext)) {
+        return isPdfJsAvailable();
+    }
+    
+    return false;
 };
 
 // Check if file is a PDF
 const isPdfFile = (fileName) => {
     const ext = fileName.split('.').pop().toLowerCase();
     return ext === 'pdf';
+};
+
+// Check if PDF.js is available and properly loaded
+const isPdfJsAvailable = () => {
+    try {
+        return typeof pdfjsLib !== 'undefined' && 
+               pdfjsLib && 
+               typeof pdfjsLib.getDocument === 'function';
+    } catch (e) {
+        return false;
+    }
 };
 
 // Check if file supports visual thumbnail treatment (including PDFs)
@@ -197,8 +219,8 @@ const initThumbnailLazyLoading = () => {
 const generatePdfThumbnail = async (filePath) => {
     try {
         // Check if PDF.js is available
-        if (typeof pdfjsLib === 'undefined') {
-            throw new Error('PDF.js library not loaded');
+        if (!isPdfJsAvailable()) {
+            throw new Error('PDF.js library not available or not properly loaded');
         }
         
         // Initialize PDF.js worker if not already done
@@ -206,16 +228,27 @@ const generatePdfThumbnail = async (filePath) => {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
         
-        // Download the PDF file
-        const response = await fetch(`/api/download?path=${encodeURIComponent(filePath)}`);
+        // Use preview endpoint instead of download to avoid attachment headers
+        const response = await fetch(`/api/preview?path=${encodeURIComponent(filePath)}`, {
+            headers: {
+                'Accept': 'application/pdf'
+            }
+        });
+        
         if (!response.ok) {
-            throw new Error(`Failed to download PDF: ${response.status}`);
+            throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
         }
         
         const arrayBuffer = await response.arrayBuffer();
         
-        // Load PDF document
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        // Load PDF document with error handling
+        const loadingTask = pdfjsLib.getDocument({ 
+            data: arrayBuffer,
+            disableAutoFetch: true,
+            disableStream: true
+        });
+        
+        const pdf = await loadingTask.promise;
         
         // Get first page
         const page = await pdf.getPage(1);
@@ -266,9 +299,15 @@ const loadThumbnail = async (img, filePath) => {
                 return;
             }
             
-            // Generate PDF thumbnail client-side
+            // Generate PDF thumbnail client-side with timeout
             try {
-                const thumbnailDataUrl = await generatePdfThumbnail(filePath);
+                // Add a timeout to prevent hanging
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('PDF thumbnail generation timeout')), 15000)
+                );
+                
+                const thumbnailPromise = generatePdfThumbnail(filePath);
+                const thumbnailDataUrl = await Promise.race([thumbnailPromise, timeoutPromise]);
                 
                 // Cache the thumbnail
                 pdfThumbnailCache.set(filePath, thumbnailDataUrl);
@@ -278,10 +317,32 @@ const loadThumbnail = async (img, filePath) => {
                 img.classList.remove('error');
                 console.log('Generated and cached PDF thumbnail for:', fileName);
             } catch (pdfError) {
-                console.warn('Failed to generate PDF thumbnail:', pdfError);
-                img.classList.remove('loading');
-                img.classList.add('error');
-                img.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                console.warn('Failed to generate PDF thumbnail, falling back to server-side:', pdfError);
+                
+                // Fallback to server-side thumbnail generation for PDFs
+                try {
+                    const pixelRatio = window.devicePixelRatio || 1;
+                    const size = Math.min(400, Math.ceil(200 * pixelRatio));
+                    const thumbnailUrl = `/api/thumbnail?path=${encodeURIComponent(filePath)}&size=${size}`;
+                    
+                    const testImg = new Image();
+                    testImg.onload = () => {
+                        img.src = thumbnailUrl;
+                        img.classList.remove('loading');
+                        img.classList.remove('error');
+                    };
+                    testImg.onerror = () => {
+                        img.classList.remove('loading');
+                        img.classList.add('error');
+                        img.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                    };
+                    
+                    testImg.src = thumbnailUrl;
+                } catch (serverError) {
+                    img.classList.remove('loading');
+                    img.classList.add('error');
+                    img.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                }
             }
         } else {
             // Handle regular image thumbnails
@@ -1154,6 +1215,17 @@ elements.lastPageBtnBottom.addEventListener('click', () => {
 // Initialize the application
 const init = async () => {
     console.log('Initializing Azure SMB File Browser...');
+    
+    // Check PDF.js availability and log debug info
+    console.log('PDF.js availability check:', {
+        pdfjsLib: typeof pdfjsLib,
+        available: isPdfJsAvailable(),
+        timestamp: new Date().toISOString()
+    });
+    
+    if (!isPdfJsAvailable()) {
+        console.warn('PDF.js not available - PDF thumbnails will be disabled');
+    }
     
     // Check connection status
     await checkConnection();
