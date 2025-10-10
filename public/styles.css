@@ -476,16 +476,14 @@ body {
     line-height: 1.2;
     padding: 0 0.25rem;
     text-align: center;
+    width: 100%;
+    box-sizing: border-box;
     
-    /* Truncate long filenames with ellipsis */
+    /* Single line truncation with ellipsis */
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    word-break: break-word;
-    max-height: 2.4em; /* 2 lines max */
-    min-height: 2.4em;
+    max-width: 100%;
 }
 
 .file-list.grid-view .file-name {
@@ -497,15 +495,11 @@ body {
     box-sizing: border-box;
     text-align: center;
     
-    /* Truncate long filenames with ellipsis */
+    /* Single line truncation with ellipsis */
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    word-break: break-word;
-    max-height: 2.4em; /* 2 lines max */
-    min-height: 2.4em;
+    max-width: 100%;
 }
 
 /* PDF Thumbnail Placeholder */
