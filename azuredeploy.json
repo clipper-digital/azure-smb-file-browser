@@ -1,0 +1,154 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "siteName": {
+      "type": "string",
+      "defaultValue": "[concat('azure-smb-browser-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Name of the web app"
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "[concat('asp-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Name of the app service plan"
+      }
+    },
+    "sku": {
+      "type": "string",
+      "allowedValues": [
+        "F1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "defaultValue": "B1",
+      "metadata": {
+        "description": "The SKU of App Service Plan"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Storage Account Name"
+      }
+    },
+    "storageAccountKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Azure Storage Account Key"
+      }
+    },
+    "fileShareName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure File Share Name"
+      }
+    },
+    "rootFolder": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional: Root folder to start browsing from (e.g., 'documents/public')"
+      }
+    },
+    "repositoryUrl": {
+      "type": "string",
+      "defaultValue": "https://github.com/andrewjschmitt/azure-smb-file-browser.git",
+      "metadata": {
+        "description": "Repository URL"
+      }
+    },
+    "branch": {
+      "type": "string",
+      "defaultValue": "main",
+      "metadata": {
+        "description": "Repository branch"
+      }
+    }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "[parameters('sku')]"
+      },
+      "properties": {
+        "reserved": false
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('siteName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "siteConfig": {
+          "nodeVersion": "18-lts",
+          "appSettings": [
+            {
+              "name": "AZURE_STORAGE_ACCOUNT_NAME",
+              "value": "[parameters('storageAccountName')]"
+            },
+            {
+              "name": "AZURE_STORAGE_ACCOUNT_KEY",
+              "value": "[parameters('storageAccountKey')]"
+            },
+            {
+              "name": "AZURE_STORAGE_FILE_SHARE_NAME",
+              "value": "[parameters('fileShareName')]"
+            },
+            {
+              "name": "ROOT_FOLDER",
+              "value": "[parameters('rootFolder')]"
+            },
+            {
+              "name": "NODE_ENV",
+              "value": "production"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "type": "sourcecontrols",
+          "apiVersion": "2021-02-01",
+          "name": "web",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+          ],
+          "properties": {
+            "repoUrl": "[parameters('repositoryUrl')]",
+            "branch": "[parameters('branch')]",
+            "isManualIntegration": true
+          }
+        }
+      ]
+    }
+  ],
+  "outputs": {
+    "websiteUrl": {
+      "type": "string",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', parameters('siteName'))).defaultHostName)]"
+    }
+  }
+}
