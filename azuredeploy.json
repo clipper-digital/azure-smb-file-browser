@@ -9,11 +9,32 @@
         "description": "Name of the web app"
       }
     },
-    "appServicePlanName": {
+    "useExistingAppServicePlan": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Use an existing App Service Plan instead of creating a new one"
+      }
+    },
+    "existingAppServicePlanName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the existing App Service Plan (required if useExistingAppServicePlan is true)"
+      }
+    },
+    "existingAppServicePlanResourceGroup": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]",
+      "metadata": {
+        "description": "Resource Group of the existing App Service Plan (defaults to current resource group)"
+      }
+    },
+    "newAppServicePlanName": {
       "type": "string",
       "defaultValue": "[concat('asp-', uniqueString(resourceGroup().id))]",
       "metadata": {
-        "description": "Name of the app service plan"
+        "description": "Name of the new App Service Plan to create (used if useExistingAppServicePlan is false)"
       }
     },
     "sku": {
@@ -25,11 +46,14 @@
         "B3",
         "S1",
         "S2",
-        "S3"
+        "S3",
+        "P1",
+        "P2",
+        "P3"
       ],
       "defaultValue": "B1",
       "metadata": {
-        "description": "The SKU of App Service Plan"
+        "description": "The SKU of App Service Plan (used only when creating a new App Service Plan)"
       }
     },
     "storageAccountName": {
@@ -73,13 +97,17 @@
     }
   },
   "variables": {
-    "location": "[resourceGroup().location]"
+    "location": "[resourceGroup().location]",
+    "appServicePlanName": "[if(parameters('useExistingAppServicePlan'), parameters('existingAppServicePlanName'), parameters('newAppServicePlanName'))]",
+    "appServicePlanResourceGroup": "[if(parameters('useExistingAppServicePlan'), parameters('existingAppServicePlanResourceGroup'), resourceGroup().name)]",
+    "createNewAppServicePlan": "[not(parameters('useExistingAppServicePlan'))]"
   },
   "resources": [
     {
+      "condition": "[variables('createNewAppServicePlan')]",
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2021-02-01",
-      "name": "[parameters('appServicePlanName')]",
+      "name": "[variables('appServicePlanName')]",
       "location": "[variables('location')]",
       "sku": {
         "name": "[parameters('sku')]"
@@ -94,10 +122,10 @@
       "name": "[parameters('siteName')]",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+        "[if(variables('createNewAppServicePlan'), resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName')), '')]"
       ],
       "properties": {
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "serverFarmId": "[if(parameters('useExistingAppServicePlan'), resourceId(variables('appServicePlanResourceGroup'), 'Microsoft.Web/serverfarms', variables('appServicePlanName')), resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName')))]",
         "siteConfig": {
           "nodeVersion": "18-lts",
           "appSettings": [
@@ -149,6 +177,10 @@
     "websiteUrl": {
       "type": "string",
       "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', parameters('siteName'))).defaultHostName)]"
+    },
+    "appServicePlanUsed": {
+      "type": "string",
+      "value": "[if(parameters('useExistingAppServicePlan'), concat('Used existing: ', variables('appServicePlanName'), ' in ', variables('appServicePlanResourceGroup')), concat('Created new: ', variables('appServicePlanName')))]"
     }
   }
 }

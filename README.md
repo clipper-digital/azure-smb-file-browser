@@ -136,7 +136,21 @@ npm start
    - Select your repository and branch
    - Azure will automatically detect the Node.js app and configure the build pipeline
 
-4. **Set environment variables**:
+4. **Choose App Service Plan**:
+   The deployment template offers two options:
+   
+   **Option A: Create New App Service Plan** (Default)
+   - Set `useExistingAppServicePlan` to `false`
+   - Choose your preferred SKU (F1, B1, B2, B3, S1, S2, S3, P1, P2, P3)
+   - A new App Service Plan will be created
+   
+   **Option B: Use Existing App Service Plan**
+   - Set `useExistingAppServicePlan` to `true` 
+   - Provide `existingAppServicePlanName`
+   - Optionally specify `existingAppServicePlanResourceGroup` (defaults to current RG)
+   - Saves costs by sharing resources with existing apps
+
+5. **Set environment variables**:
    - Go to App Service → Configuration → Application Settings
    - Add the required environment variables:
      ```
@@ -144,6 +158,7 @@ npm start
      AZURE_STORAGE_ACCOUNT_KEY = your_storage_account_key
      AZURE_STORAGE_FILE_SHARE_NAME = your_file_share_name
      NODE_ENV = production
+     ROOT_FOLDER = optional_subfolder_path
      ```
 
 5. **Configure Authentication (Optional but Recommended)**:
@@ -184,6 +199,34 @@ npm start
    ```bash
    az webapp deployment source config-zip --resource-group <resource-group> --name <app-name> --src app.zip
    ```
+
+## 🛠️ Deployment Template Parameters
+
+The Azure Resource Manager template supports the following parameters:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `siteName` | string | No | `azure-smb-browser-{unique}` | Name of the web app |
+| `useExistingAppServicePlan` | bool | No | `false` | Use existing App Service Plan instead of creating new |
+| `existingAppServicePlanName` | string | Conditional* | `""` | Name of existing App Service Plan |
+| `existingAppServicePlanResourceGroup` | string | No | `{current-rg}` | Resource group of existing App Service Plan |
+| `newAppServicePlanName` | string | No | `asp-{unique}` | Name for new App Service Plan |
+| `sku` | string | No | `B1` | App Service Plan SKU (F1,B1,B2,B3,S1,S2,S3,P1,P2,P3) |
+| `storageAccountName` | string | **Yes** | - | Azure Storage Account name |
+| `storageAccountKey` | securestring | **Yes** | - | Azure Storage Account key |
+| `fileShareName` | string | **Yes** | - | Azure File Share name |
+| `rootFolder` | string | No | `""` | Optional root folder path |
+| `repositoryUrl` | string | No | `{this-repo}` | Git repository URL |
+| `branch` | string | No | `main` | Git branch to deploy |
+
+*\* Required when `useExistingAppServicePlan` is `true`*
+
+### Cost Optimization Tips
+
+- **Free Tier**: Use `F1` SKU for development/testing (limited features)
+- **Shared Resources**: Use existing App Service Plan to save costs
+- **Right-size**: Choose appropriate SKU based on expected usage
+- **Multiple Apps**: Deploy multiple apps to same App Service Plan
 
 ## Configuration Options
 
