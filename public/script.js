@@ -185,6 +185,14 @@ const isPdfJsAvailable = () => {
     }
 };
 
+// Truncate filename for display in grid view
+const truncateFilename = (filename, maxLength = 25) => {
+    if (filename.length <= maxLength) {
+        return filename;
+    }
+    return filename.substring(0, maxLength) + '...';
+};
+
 // Check if file supports visual thumbnail treatment (including PDFs)
 const supportsVisualThumbnail = (fileName) => {
     const ext = fileName.split('.').pop().toLowerCase();
@@ -645,7 +653,7 @@ const renderFiles = () => {
                     ${iconContent}
                 </div>
                 <div class="file-info">
-                    <div class="file-name" title="${file.name}">${file.name}</div>
+                    <div class="file-name" title="${file.name}">${viewMode === 'grid' ? truncateFilename(file.name) : file.name}</div>
                     ${metaData}
                 </div>
                 <div class="file-actions">

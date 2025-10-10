@@ -478,12 +478,7 @@ body {
     text-align: center;
     width: 100%;
     box-sizing: border-box;
-    
-    /* Single line truncation with ellipsis */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    word-wrap: break-word;
 }
 
 .file-list.grid-view .file-name {
@@ -494,12 +489,7 @@ body {
     width: 100%;
     box-sizing: border-box;
     text-align: center;
-    
-    /* Single line truncation with ellipsis */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    word-wrap: break-word;
 }
 
 /* PDF Thumbnail Placeholder */
