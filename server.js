@@ -77,6 +77,13 @@ const canGenerateThumbnail = (fileName) => {
   return imageExts.includes(ext);
 };
 
+// Helper function to determine if file should get a visual thumbnail treatment
+const supportsVisualThumbnail = (fileName) => {
+  const ext = path.extname(fileName).toLowerCase();
+  const supportedExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg', '.pdf'];
+  return supportedExts.includes(ext);
+};
+
 // Generate thumbnail for supported file types
 const generateThumbnail = async (fileBuffer, fileName, size = 200) => {
   if (!sharp) {
@@ -195,6 +202,26 @@ app.get('/api/thumbnail', async (req, res) => {
       res.status(500).json({ error: 'Failed to generate thumbnail' });
     }
   }
+});
+
+// Test endpoint to verify thumbnail system
+app.get('/api/thumbnail-test', (req, res) => {
+  console.log('Thumbnail test endpoint hit');
+  res.json({ 
+    message: 'Thumbnail system status',
+    timestamp: new Date().toISOString(),
+    version: '3.0-with-thumbnails',
+    sharp: {
+      available: !!sharp,
+      version: sharp ? 'loaded' : 'not available'
+    },
+    cache: {
+      keys: thumbnailCache.keys().length,
+      stats: thumbnailCache.getStats()
+    },
+    supportedImageFormats: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg'],
+    visualThumbnailFormats: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg', '.pdf']
+  });
 });
 
 // Test endpoint to verify pagination deployment

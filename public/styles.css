@@ -477,6 +477,100 @@ body {
     -webkit-box-orient: vertical;
 }
 
+/* PDF Thumbnail Placeholder */
+.file-thumbnail-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    border: 2px solid #e1e1e1;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.file-thumbnail-placeholder:hover {
+    border-color: #0078d4;
+    box-shadow: 0 2px 8px rgba(0, 120, 212, 0.2);
+    transform: scale(1.02);
+}
+
+.pdf-placeholder {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+}
+
+.pdf-preview {
+    width: 80px;
+    height: 90px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pdf-header {
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #dc3545, #dc3545 70%, transparent 70%);
+    border-radius: 2px;
+}
+
+.pdf-lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 4px;
+}
+
+.pdf-line {
+    height: 2px;
+    background: #dee2e6;
+    border-radius: 1px;
+    width: 100%;
+}
+
+.pdf-line.short {
+    width: 60%;
+}
+
+.pdf-line.medium {
+    width: 80%;
+}
+
+.file-type-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+}
+
+/* Animation for PDF preview */
+@keyframes pdf-shimmer {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.pdf-placeholder:hover .pdf-line {
+    animation: pdf-shimmer 2s ease-in-out infinite;
+    animation-delay: calc(var(--line-index, 0) * 0.1s);
+}
+
 /* Modal */
 .modal {
     display: none;

@@ -153,6 +153,13 @@ const supportsThumbnail = (fileName) => {
     return imageExts.includes(ext);
 };
 
+// Check if file supports visual thumbnail treatment (including PDFs)
+const supportsVisualThumbnail = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const supportedExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg', 'pdf'];
+    return supportedExts.includes(ext);
+};
+
 // Lazy loading intersection observer for thumbnails
 let thumbnailObserver = null;
 
@@ -435,6 +442,7 @@ const renderFiles = () => {
         const iconClass = getFileIcon(file.name, file.type === 'directory');
         const iconType = file.type === 'directory' ? 'folder' : 'file';
         const hasThumbnail = file.type === 'file' && supportsThumbnail(file.name) && viewMode === 'grid';
+        const hasVisualThumbnail = file.type === 'file' && supportsVisualThumbnail(file.name) && viewMode === 'grid';
         
         const actions = file.type === 'file' 
             ? `
@@ -460,20 +468,46 @@ const renderFiles = () => {
             : '<div class="file-meta"><span>Folder</span></div>';
         
         // Generate thumbnail for grid view
-        const iconContent = hasThumbnail 
-            ? `<img class="file-thumbnail loading" data-file-path="${file.path}" alt="${file.name}" />`
-            : `<i class="${iconClass}"></i>`;
+        let iconContent;
+        if (hasThumbnail) {
+            // Real image thumbnails
+            iconContent = `<img class="file-thumbnail loading" data-file-path="${file.path}" alt="${file.name}" />`;
+        } else if (hasVisualThumbnail) {
+            // Enhanced visual treatment for PDFs and other supported files
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext === 'pdf') {
+                iconContent = `
+                    <div class="file-thumbnail-placeholder pdf-placeholder">
+                        <div class="pdf-preview">
+                            <div class="pdf-header"></div>
+                            <div class="pdf-lines">
+                                <div class="pdf-line"></div>
+                                <div class="pdf-line short"></div>
+                                <div class="pdf-line"></div>
+                                <div class="pdf-line medium"></div>
+                                <div class="pdf-line"></div>
+                            </div>
+                        </div>
+                        <div class="file-type-badge">${ext.toUpperCase()}</div>
+                    </div>
+                `;
+            } else {
+                iconContent = `<i class="${iconClass}"></i>`;
+            }
+        } else {
+            iconContent = `<i class="${iconClass}"></i>`;
+        }
         
         const itemClasses = [
             'file-item',
             file.type === 'directory' ? 'directory-item' : '',
-            hasThumbnail ? 'has-thumbnail' : ''
+            (hasThumbnail || hasVisualThumbnail) ? 'has-thumbnail' : ''
         ].filter(Boolean).join(' ');
         
         const iconClasses = [
             'file-icon',
             iconType,
-            hasThumbnail ? 'has-thumbnail' : ''
+            (hasThumbnail || hasVisualThumbnail) ? 'has-thumbnail' : ''
         ].filter(Boolean).join(' ');
         
         return `
