@@ -1009,7 +1009,6 @@ const showFilePreview = async (filePath, fileName) => {
 };
 
 // Helper functions to determine file types
-const isPdfFile = (ext) => ext === 'pdf';
 
 const isImageFile = (ext) => {
     return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext);
