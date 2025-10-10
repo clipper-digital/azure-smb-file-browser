@@ -383,7 +383,7 @@ body {
 /* Grid view */
 .file-list.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1.5rem;
     padding: 1rem;
 }
@@ -395,9 +395,10 @@ body {
     border: 1px solid #ddd;
     border-radius: 8px;
     background-color: white;
-    min-height: 200px;
+    min-height: 240px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .file-list.grid-view .file-icon {
@@ -484,17 +485,19 @@ body {
 }
 
 .file-list.grid-view .file-name {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
+    margin-top: 0.75rem;
+    font-size: 0.7rem;
     line-height: 1.1;
-    max-height: 3.3em;
+    max-height: 4.4em;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
-    word-break: break-word;
+    word-break: break-all;
     hyphens: auto;
-    padding: 0 0.25rem;
+    padding: 0 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* PDF Thumbnail Placeholder */

@@ -442,7 +442,7 @@ const renderFiles = () => {
         const iconClass = getFileIcon(file.name, file.type === 'directory');
         const iconType = file.type === 'directory' ? 'folder' : 'file';
         const hasThumbnail = file.type === 'file' && supportsThumbnail(file.name) && viewMode === 'grid';
-        const hasVisualThumbnail = file.type === 'file' && supportsVisualThumbnail(file.name) && viewMode === 'grid';
+        const hasVisualThumbnail = false; // Disabled - using real thumbnails now
         
         const actions = file.type === 'file' 
             ? `
@@ -468,48 +468,20 @@ const renderFiles = () => {
             : '<div class="file-meta"><span>Folder</span></div>';
         
         // Generate thumbnail for grid view
-        let iconContent;
-        if (hasThumbnail) {
-            // Real image thumbnails
-            iconContent = `<img class="file-thumbnail loading" data-file-path="${file.path}" alt="${file.name}" />`;
-        } else if (hasVisualThumbnail) {
-            // Enhanced visual treatment for PDFs and other supported files
-            const ext = file.name.split('.').pop().toLowerCase();
-            console.log('Processing visual thumbnail for:', file.name, 'ext:', ext, 'viewMode:', viewMode);
-            if (ext === 'pdf') {
-                iconContent = `
-                    <div class="file-thumbnail-placeholder pdf-placeholder">
-                        <div class="pdf-preview">
-                            <div class="pdf-header"></div>
-                            <div class="pdf-lines">
-                                <div class="pdf-line" style="--line-index: 0"></div>
-                                <div class="pdf-line short" style="--line-index: 1"></div>
-                                <div class="pdf-line" style="--line-index: 2"></div>
-                                <div class="pdf-line medium" style="--line-index: 3"></div>
-                                <div class="pdf-line" style="--line-index: 4"></div>
-                            </div>
-                        </div>
-                        <div class="file-type-badge">${ext.toUpperCase()}</div>
-                    </div>
-                `;
-                console.log('Generated PDF thumbnail for:', file.name);
-            } else {
-                iconContent = `<i class="${iconClass}"></i>`;
-            }
-        } else {
-            iconContent = `<i class="${iconClass}"></i>`;
-        }
+        const iconContent = hasThumbnail 
+            ? `<img class="file-thumbnail loading" data-file-path="${file.path}" alt="${file.name}" />`
+            : `<i class="${iconClass}"></i>`;
         
         const itemClasses = [
             'file-item',
             file.type === 'directory' ? 'directory-item' : '',
-            (hasThumbnail || hasVisualThumbnail) ? 'has-thumbnail' : ''
+            hasThumbnail ? 'has-thumbnail' : ''
         ].filter(Boolean).join(' ');
         
         const iconClasses = [
             'file-icon',
             iconType,
-            (hasThumbnail || hasVisualThumbnail) ? 'has-thumbnail' : ''
+            hasThumbnail ? 'has-thumbnail' : ''
         ].filter(Boolean).join(' ');
         
         return `

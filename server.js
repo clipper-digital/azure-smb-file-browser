@@ -210,7 +210,7 @@ app.get('/api/thumbnail-test', (req, res) => {
   res.json({ 
     message: 'Thumbnail system status',
     timestamp: new Date().toISOString(),
-    version: '3.0-with-thumbnails',
+    version: '3.3-layout-fixes',
     sharp: {
       available: !!sharp,
       version: sharp ? 'loaded' : 'not available'
@@ -219,8 +219,7 @@ app.get('/api/thumbnail-test', (req, res) => {
       keys: thumbnailCache.keys().length,
       stats: thumbnailCache.getStats()
     },
-    supportedImageFormats: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg'],
-    visualThumbnailFormats: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg', '.pdf']
+    supportedFormats: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg']
   });
 });
 
