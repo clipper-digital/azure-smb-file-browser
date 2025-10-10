@@ -7,6 +7,9 @@ let currentPage = 1;
 let itemsPerPage = 20;
 let paginationData = null;
 
+// PDF thumbnail cache
+const pdfThumbnailCache = new Map();
+
 // DOM elements
 const elements = {
     connectionStatus: document.getElementById('connectionStatus'),
@@ -150,7 +153,14 @@ const getFileIcon = (fileName, isDirectory) => {
 const supportsThumbnail = (fileName) => {
     const ext = fileName.split('.').pop().toLowerCase();
     const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg'];
-    return imageExts.includes(ext);
+    const pdfExts = ['pdf'];
+    return imageExts.includes(ext) || pdfExts.includes(ext);
+};
+
+// Check if file is a PDF
+const isPdfFile = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase();
+    return ext === 'pdf';
 };
 
 // Check if file supports visual thumbnail treatment (including PDFs)
@@ -183,44 +193,128 @@ const initThumbnailLazyLoading = () => {
     }
 };
 
+// Generate PDF thumbnail using client-side PDF.js
+const generatePdfThumbnail = async (filePath) => {
+    try {
+        // Check if PDF.js is available
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js library not loaded');
+        }
+        
+        // Initialize PDF.js worker if not already done
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        
+        // Download the PDF file
+        const response = await fetch(`/api/download?path=${encodeURIComponent(filePath)}`);
+        if (!response.ok) {
+            throw new Error(`Failed to download PDF: ${response.status}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        
+        // Load PDF document
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        // Get first page
+        const page = await pdf.getPage(1);
+        
+        // Calculate scale to fit in thumbnail size
+        const viewport = page.getViewport({ scale: 1 });
+        const targetSize = 200;
+        const scale = Math.min(targetSize / viewport.width, targetSize / viewport.height);
+        const scaledViewport = page.getViewport({ scale });
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+        
+        // Render PDF page to canvas
+        const renderContext = {
+            canvasContext: context,
+            viewport: scaledViewport
+        };
+        
+        await page.render(renderContext).promise;
+        
+        // Convert canvas to data URL
+        return canvas.toDataURL('image/jpeg', 0.85);
+        
+    } catch (error) {
+        console.error('Error generating PDF thumbnail:', error);
+        throw error;
+    }
+};
+
 // Load thumbnail for an image element
 const loadThumbnail = async (img, filePath) => {
     try {
         img.classList.add('loading');
         
-        // Use higher resolution on high-DPI displays
-        const pixelRatio = window.devicePixelRatio || 1;
-        const size = Math.min(400, Math.ceil(200 * pixelRatio)); // Cap at 400px for performance
+        const fileName = filePath.split('/').pop();
         
-        const thumbnailUrl = `/api/thumbnail?path=${encodeURIComponent(filePath)}&size=${size}`;
-        
-        // Create a new image to test if thumbnail loads successfully
-        const testImg = new Image();
-        testImg.onload = () => {
-            img.src = thumbnailUrl;
-            img.classList.remove('loading');
-            img.classList.remove('error');
-        };
-        testImg.onerror = () => {
-            img.classList.remove('loading');
-            img.classList.add('error');
-            img.innerHTML = '<i class="fas fa-image"></i>';
-        };
-        
-        // Add a timeout to prevent hanging
-        setTimeout(() => {
-            if (img.classList.contains('loading')) {
-                testImg.onerror();
+        if (isPdfFile(fileName)) {
+            // Check cache first
+            if (pdfThumbnailCache.has(filePath)) {
+                img.src = pdfThumbnailCache.get(filePath);
+                img.classList.remove('loading');
+                img.classList.remove('error');
+                console.log('Used cached PDF thumbnail for:', fileName);
+                return;
             }
-        }, 10000); // 10 second timeout
-        
-        testImg.src = thumbnailUrl;
+            
+            // Generate PDF thumbnail client-side
+            try {
+                const thumbnailDataUrl = await generatePdfThumbnail(filePath);
+                
+                // Cache the thumbnail
+                pdfThumbnailCache.set(filePath, thumbnailDataUrl);
+                
+                img.src = thumbnailDataUrl;
+                img.classList.remove('loading');
+                img.classList.remove('error');
+                console.log('Generated and cached PDF thumbnail for:', fileName);
+            } catch (pdfError) {
+                console.warn('Failed to generate PDF thumbnail:', pdfError);
+                img.classList.remove('loading');
+                img.classList.add('error');
+                img.innerHTML = '<i class="fas fa-file-pdf"></i>';
+            }
+        } else {
+            // Handle regular image thumbnails
+            const pixelRatio = window.devicePixelRatio || 1;
+            const size = Math.min(400, Math.ceil(200 * pixelRatio));
+            const thumbnailUrl = `/api/thumbnail?path=${encodeURIComponent(filePath)}&size=${size}`;
+            
+            const testImg = new Image();
+            testImg.onload = () => {
+                img.src = thumbnailUrl;
+                img.classList.remove('loading');
+                img.classList.remove('error');
+            };
+            testImg.onerror = () => {
+                img.classList.remove('loading');
+                img.classList.add('error');
+                img.innerHTML = '<i class="fas fa-image"></i>';
+            };
+            
+            setTimeout(() => {
+                if (img.classList.contains('loading')) {
+                    testImg.onerror();
+                }
+            }, 10000);
+            
+            testImg.src = thumbnailUrl;
+        }
         
     } catch (error) {
         console.warn('Failed to load thumbnail for', filePath, error);
         img.classList.remove('loading');
         img.classList.add('error');
-        img.innerHTML = '<i class="fas fa-image"></i>';
+        img.innerHTML = '<i class="fas fa-file"></i>';
     }
 };
 
