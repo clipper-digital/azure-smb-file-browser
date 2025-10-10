@@ -301,8 +301,11 @@ const loadThumbnail = async (img, filePath) => {
             // Check cache first
             if (pdfThumbnailCache.has(filePath)) {
                 img.src = pdfThumbnailCache.get(filePath);
-                img.classList.remove('loading');
+                img.classList.remove('loading', 'pdf-loading', 'image-loading');
                 img.classList.remove('error');
+                setTimeout(() => {
+                    img.style.opacity = '1';
+                }, 50);
                 console.log('Used cached PDF thumbnail for:', fileName);
                 return;
             }
@@ -321,8 +324,12 @@ const loadThumbnail = async (img, filePath) => {
                 pdfThumbnailCache.set(filePath, thumbnailDataUrl);
                 
                 img.src = thumbnailDataUrl;
-                img.classList.remove('loading');
+                img.classList.remove('loading', 'pdf-loading', 'image-loading');
                 img.classList.remove('error');
+                // Add a small delay for smoother transition
+                setTimeout(() => {
+                    img.style.opacity = '1';
+                }, 50);
                 console.log('Generated and cached PDF thumbnail for:', fileName);
             } catch (pdfError) {
                 console.warn('Failed to generate PDF thumbnail, falling back to server-side:', pdfError);
@@ -361,11 +368,15 @@ const loadThumbnail = async (img, filePath) => {
             const testImg = new Image();
             testImg.onload = () => {
                 img.src = thumbnailUrl;
-                img.classList.remove('loading');
+                img.classList.remove('loading', 'pdf-loading', 'image-loading');
                 img.classList.remove('error');
+                // Add a small delay for smoother transition
+                setTimeout(() => {
+                    img.style.opacity = '1';
+                }, 50);
             };
             testImg.onerror = () => {
-                img.classList.remove('loading');
+                img.classList.remove('loading', 'pdf-loading', 'image-loading');
                 img.classList.add('error');
                 img.innerHTML = '<i class="fas fa-image"></i>';
             };
@@ -631,9 +642,15 @@ const renderFiles = () => {
             : '<div class="file-meta"><span>Folder</span></div>';
         
         // Generate thumbnail for grid view
-        const iconContent = hasThumbnail 
-            ? `<img class="file-thumbnail loading" data-file-path="${file.path}" alt="${file.name}" />`
-            : `<i class="${iconClass}"></i>`;
+        let iconContent;
+        if (hasThumbnail) {
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const isPdf = fileExt === 'pdf';
+            const loadingClass = isPdf ? 'pdf-loading' : 'image-loading';
+            iconContent = `<img class="file-thumbnail loading ${loadingClass}" data-file-path="${file.path}" alt="${file.name}" />`;
+        } else {
+            iconContent = `<i class="${iconClass}"></i>`;
+        }
         
         const itemClasses = [
             'file-item',

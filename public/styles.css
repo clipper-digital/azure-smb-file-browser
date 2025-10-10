@@ -423,8 +423,13 @@ body {
     border-radius: 8px;
     object-fit: cover;
     border: 2px solid #e1e1e1;
-    transition: all 0.3s ease;
+    transition: all 0.3s ease, opacity 0.3s ease;
     background-color: #f8f9fa;
+    opacity: 0;
+}
+
+.file-thumbnail:not(.loading) {
+    opacity: 1;
 }
 
 .file-thumbnail:hover {
@@ -434,16 +439,44 @@ body {
 }
 
 .file-thumbnail.loading {
-    background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0),
-                linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0);
-    background-size: 20px 20px;
-    background-position: 0 0, 10px 10px;
-    animation: loading-stripe 1s linear infinite;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef, #f8f9fa);
+    background-size: 200% 200%;
+    animation: loading-shimmer 2s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
 }
 
-@keyframes loading-stripe {
-    0% { background-position: 0 0, 10px 10px; }
-    100% { background-position: 20px 20px, 30px 30px; }
+.file-thumbnail.loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+    animation: loading-sweep 1.5s ease-in-out infinite;
+}
+
+.file-thumbnail.loading::after {
+    content: '🖼️';
+    font-size: 2rem;
+    opacity: 0.3;
+    z-index: 1;
+    position: relative;
+}
+
+@keyframes loading-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes loading-sweep {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
 .file-thumbnail.error {
@@ -453,6 +486,20 @@ body {
     justify-content: center;
     color: #999;
     font-size: 2rem;
+}
+
+/* PDF-specific loading placeholder */
+.file-thumbnail.loading.pdf-loading::after {
+    content: '📄';
+    font-size: 2.5rem;
+    opacity: 0.4;
+}
+
+/* Image-specific loading placeholder */
+.file-thumbnail.loading.image-loading::after {
+    content: '🖼️';
+    font-size: 2rem;
+    opacity: 0.3;
 }
 
 .file-icon.has-thumbnail {
