@@ -3,6 +3,9 @@ let currentPath = '';
 let currentFiles = [];
 let viewMode = 'list'; // 'list' or 'grid'
 let rootFolder = null; // Will be set from server
+let currentPage = 1;
+let itemsPerPage = 20;
+let paginationData = null;
 
 // DOM elements
 const elements = {
@@ -36,7 +39,23 @@ const elements = {
     closePreviewModal: document.getElementById('closePreviewModal'),
     closePreviewModalBtn: document.getElementById('closePreviewModalBtn'),
     downloadFromPreview: document.getElementById('downloadFromPreview'),
-    showInfoFromPreview: document.getElementById('showInfoFromPreview')
+    showInfoFromPreview: document.getElementById('showInfoFromPreview'),
+    // Pagination elements
+    paginationTop: document.getElementById('paginationTop'),
+    paginationBottom: document.getElementById('paginationBottom'),
+    itemsPerPageSelect: document.getElementById('itemsPerPage'),
+    paginationInfo: document.getElementById('paginationInfo'),
+    paginationInfoBottom: document.getElementById('paginationInfoBottom'),
+    firstPageBtn: document.getElementById('firstPageBtn'),
+    prevPageBtn: document.getElementById('prevPageBtn'),
+    nextPageBtn: document.getElementById('nextPageBtn'),
+    lastPageBtn: document.getElementById('lastPageBtn'),
+    firstPageBtnBottom: document.getElementById('firstPageBtnBottom'),
+    prevPageBtnBottom: document.getElementById('prevPageBtnBottom'),
+    nextPageBtnBottom: document.getElementById('nextPageBtnBottom'),
+    lastPageBtnBottom: document.getElementById('lastPageBtnBottom'),
+    pageNumbers: document.getElementById('pageNumbers'),
+    pageNumbersBottom: document.getElementById('pageNumbersBottom')
 };
 
 // Utility functions
@@ -180,12 +199,20 @@ const checkConnection = async () => {
     }
 };
 
-const loadDirectory = async (path = '') => {
-    console.log('loadDirectory called with path:', path);
+const loadDirectory = async (path = '', page = 1, resetPagination = false) => {
+    console.log('loadDirectory called with path:', path, 'page:', page);
     showLoading();
     
+    // Reset pagination when navigating to different directory
+    if (resetPagination || path !== currentPath) {
+        currentPage = 1;
+        page = 1;
+    } else {
+        currentPage = page;
+    }
+    
     try {
-        const url = `/api/browse?path=${encodeURIComponent(path)}`;
+        const url = `/api/browse?path=${encodeURIComponent(path)}&page=${page}&limit=${itemsPerPage}`;
         console.log('Fetching:', url);
         const response = await fetch(url);
         
@@ -199,13 +226,16 @@ const loadDirectory = async (path = '') => {
         
         currentPath = data.currentPath;
         currentFiles = data.items;
+        paginationData = data.pagination;
         
         console.log('Updated currentPath:', currentPath);
         console.log('Updated currentFiles:', currentFiles);
+        console.log('Updated paginationData:', paginationData);
         
         updateBreadcrumb();
         renderFiles();
         updateUI();
+        updatePagination();
         
         hideLoading();
         
@@ -306,7 +336,7 @@ const updateBreadcrumb = () => {
     breadcrumbContent.querySelectorAll('.breadcrumb-item:not(.active)').forEach(item => {
         item.addEventListener('click', () => {
             const path = item.getAttribute('data-path');
-            loadDirectory(path);
+            loadDirectory(path, 1, true); // Reset pagination when navigating via breadcrumb
         });
     });
 };
@@ -394,7 +424,7 @@ const addFileEventListeners = () => {
             const file = currentFiles[fileIndex];
             if (file && file.type === 'directory') {
                 console.log('Navigating to directory:', file.path);
-                loadDirectory(file.path);
+                loadDirectory(file.path, 1, true); // Reset pagination when navigating to subdirectory
             }
         });
     });
@@ -440,14 +470,124 @@ const addFileEventListeners = () => {
 };
 
 const updateUI = () => {
-    // Update item count
-    elements.itemCount.textContent = `${currentFiles.length} item${currentFiles.length !== 1 ? 's' : ''}`;
+    // Update item count based on pagination data
+    if (paginationData) {
+        const { totalItems, startIndex, endIndex } = paginationData;
+        elements.itemCount.textContent = `Showing ${startIndex}-${endIndex} of ${totalItems} items`;
+    } else {
+        elements.itemCount.textContent = `${currentFiles.length} item${currentFiles.length !== 1 ? 's' : ''}`;
+    }
     
     // Update current path
     elements.currentPathSpan.textContent = formatPath(currentPath);
     
     // Update back button
     elements.backBtn.disabled = !currentPath;
+};
+
+const updatePagination = () => {
+    if (!paginationData || paginationData.totalItems === 0) {
+        // Hide pagination if no items or pagination data
+        hideElement(elements.paginationTop);
+        hideElement(elements.paginationBottom);
+        return;
+    }
+    
+    const { currentPage, totalPages, totalItems, itemsPerPage, hasNextPage, hasPrevPage, startIndex, endIndex } = paginationData;
+    
+    // Show pagination controls if there's more than one page
+    if (totalPages > 1) {
+        showElement(elements.paginationTop);
+        showElement(elements.paginationBottom);
+    } else {
+        hideElement(elements.paginationTop);
+        hideElement(elements.paginationBottom);
+        return;
+    }
+    
+    // Update pagination info
+    const infoText = `Showing ${startIndex}-${endIndex} of ${totalItems} items`;
+    elements.paginationInfo.textContent = infoText;
+    elements.paginationInfoBottom.textContent = infoText;
+    
+    // Update navigation buttons
+    updatePaginationButtons(currentPage, totalPages, hasPrevPage, hasNextPage);
+    
+    // Update page numbers
+    updatePageNumbers(currentPage, totalPages);
+};
+
+const updatePaginationButtons = (currentPage, totalPages, hasPrevPage, hasNextPage) => {
+    // Update top pagination buttons
+    elements.firstPageBtn.disabled = !hasPrevPage;
+    elements.prevPageBtn.disabled = !hasPrevPage;
+    elements.nextPageBtn.disabled = !hasNextPage;
+    elements.lastPageBtn.disabled = !hasNextPage;
+    
+    // Update bottom pagination buttons
+    elements.firstPageBtnBottom.disabled = !hasPrevPage;
+    elements.prevPageBtnBottom.disabled = !hasPrevPage;
+    elements.nextPageBtnBottom.disabled = !hasNextPage;
+    elements.lastPageBtnBottom.disabled = !hasNextPage;
+};
+
+const updatePageNumbers = (currentPage, totalPages) => {
+    const maxVisiblePages = 7;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust if we're near the end
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    let html = '';
+    
+    // Add ellipsis at beginning if needed
+    if (startPage > 1) {
+        html += `<button class="btn btn-sm page-number-btn" data-page="1">1</button>`;
+        if (startPage > 2) {
+            html += `<span class="page-ellipsis">...</span>`;
+        }
+    }
+    
+    // Add page numbers
+    for (let i = startPage; i <= endPage; i++) {
+        const isActive = i === currentPage;
+        html += `<button class="btn btn-sm page-number-btn ${isActive ? 'active' : ''}" data-page="${i}" ${isActive ? 'disabled' : ''}>${i}</button>`;
+    }
+    
+    // Add ellipsis at end if needed
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            html += `<span class="page-ellipsis">...</span>`;
+        }
+        html += `<button class="btn btn-sm page-number-btn" data-page="${totalPages}">${totalPages}</button>`;
+    }
+    
+    elements.pageNumbers.innerHTML = html;
+    elements.pageNumbersBottom.innerHTML = html;
+    
+    // Add event listeners to page number buttons
+    document.querySelectorAll('.page-number-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const page = parseInt(button.getAttribute('data-page'));
+            if (page !== currentPage) {
+                loadDirectory(currentPath, page, false);
+            }
+        });
+    });
+};
+
+const goToPage = (page) => {
+    if (paginationData && page >= 1 && page <= paginationData.totalPages && page !== paginationData.currentPage) {
+        loadDirectory(currentPath, page, false);
+    }
+};
+
+const changeItemsPerPage = (newLimit) => {
+    itemsPerPage = newLimit;
+    loadDirectory(currentPath, 1, true); // Reset to first page
 };
 
 const setViewMode = (mode) => {
@@ -702,7 +842,7 @@ window.showImageError = function(img, downloadUrl) {
 
 // Event listeners
 elements.refreshBtn.addEventListener('click', () => {
-    loadDirectory(currentPath);
+    loadDirectory(currentPath, currentPage, false);
 });
 
 elements.backBtn.addEventListener('click', () => {
@@ -710,12 +850,12 @@ elements.backBtn.addEventListener('click', () => {
         const parts = currentPath.split('/');
         parts.pop();
         const parentPath = parts.join('/');
-        loadDirectory(parentPath);
+        loadDirectory(parentPath, 1, true); // Reset pagination when going back
     }
 });
 
 elements.retryBtn.addEventListener('click', () => {
-    loadDirectory(currentPath);
+    loadDirectory(currentPath, currentPage, false);
 });
 
 elements.listViewBtn.addEventListener('click', () => {
@@ -755,6 +895,48 @@ document.addEventListener('keydown', (e) => {
         } else if (elements.fileInfoModal.classList.contains('show')) {
             closeModal();
         }
+    }
+});
+
+// Pagination event listeners
+elements.itemsPerPageSelect.addEventListener('change', (e) => {
+    const newLimit = parseInt(e.target.value);
+    changeItemsPerPage(newLimit);
+});
+
+// Top pagination buttons
+elements.firstPageBtn.addEventListener('click', () => goToPage(1));
+elements.prevPageBtn.addEventListener('click', () => {
+    if (paginationData && paginationData.hasPrevPage) {
+        goToPage(paginationData.currentPage - 1);
+    }
+});
+elements.nextPageBtn.addEventListener('click', () => {
+    if (paginationData && paginationData.hasNextPage) {
+        goToPage(paginationData.currentPage + 1);
+    }
+});
+elements.lastPageBtn.addEventListener('click', () => {
+    if (paginationData) {
+        goToPage(paginationData.totalPages);
+    }
+});
+
+// Bottom pagination buttons
+elements.firstPageBtnBottom.addEventListener('click', () => goToPage(1));
+elements.prevPageBtnBottom.addEventListener('click', () => {
+    if (paginationData && paginationData.hasPrevPage) {
+        goToPage(paginationData.currentPage - 1);
+    }
+});
+elements.nextPageBtnBottom.addEventListener('click', () => {
+    if (paginationData && paginationData.hasNextPage) {
+        goToPage(paginationData.currentPage + 1);
+    }
+});
+elements.lastPageBtnBottom.addEventListener('click', () => {
+    if (paginationData) {
+        goToPage(paginationData.totalPages);
     }
 });
 

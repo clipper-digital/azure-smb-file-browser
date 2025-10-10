@@ -48,6 +48,41 @@
                 </div>
             </div>
 
+            <div class="pagination-controls" id="paginationTop" style="display: none;">
+                <div class="pagination-left">
+                    <div class="items-per-page">
+                        <label for="itemsPerPage">Items per page:</label>
+                        <select id="itemsPerPage" class="pagination-select">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Showing 1-20 of 100 items</span>
+                    </div>
+                </div>
+                <div class="pagination-right">
+                    <div class="pagination-nav">
+                        <button class="btn btn-sm" id="firstPageBtn" disabled>
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button class="btn btn-sm" id="prevPageBtn" disabled>
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <div class="page-numbers" id="pageNumbers">
+                            <!-- Page numbers will be populated here -->
+                        </div>
+                        <button class="btn btn-sm" id="nextPageBtn">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button class="btn btn-sm" id="lastPageBtn">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="loading" id="loading">
                 <div class="loading-spinner">
                     <i class="fas fa-spinner fa-spin"></i>
@@ -74,6 +109,33 @@
                         <i class="fas fa-folder-open"></i>
                         <h3>Empty Folder</h3>
                         <p id="emptyStateMessage">This folder contains no files or subdirectories.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pagination-controls" id="paginationBottom" style="display: none;">
+                <div class="pagination-left">
+                    <div class="pagination-info">
+                        <span id="paginationInfoBottom">Showing 1-20 of 100 items</span>
+                    </div>
+                </div>
+                <div class="pagination-right">
+                    <div class="pagination-nav">
+                        <button class="btn btn-sm" id="firstPageBtnBottom" disabled>
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button class="btn btn-sm" id="prevPageBtnBottom" disabled>
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <div class="page-numbers" id="pageNumbersBottom">
+                            <!-- Page numbers will be populated here -->
+                        </div>
+                        <button class="btn btn-sm" id="nextPageBtnBottom">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button class="btn btn-sm" id="lastPageBtnBottom">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>

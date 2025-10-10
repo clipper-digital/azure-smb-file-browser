@@ -87,16 +87,33 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/browse', async (req, res) => {
   try {
     const directoryPath = req.query.path || '';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
     
-    // Validate and sanitize path
+    // Validate parameters
     if (directoryPath.includes('..') || directoryPath.includes('\\')) {
       return res.status(400).json({ error: 'Invalid path' });
     }
+    
+    if (page < 1) {
+      return res.status(400).json({ error: 'Page must be >= 1' });
+    }
+    
+    if (![10, 20, 50].includes(limit)) {
+      return res.status(400).json({ error: 'Limit must be 10, 20, or 50' });
+    }
 
-    const items = await storageService.listDirectory(directoryPath);
+    const allItems = await storageService.listDirectory(directoryPath);
+    
+    // Calculate pagination
+    const totalItems = allItems.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedItems = allItems.slice(startIndex, endIndex);
     
     // Format the response
-    const formattedItems = items.map(item => ({
+    const formattedItems = paginatedItems.map(item => ({
       ...item,
       sizeFormatted: item.size ? formatFileSize(item.size) : null,
       lastModifiedFormatted: item.lastModified 
@@ -107,7 +124,17 @@ app.get('/api/browse', async (req, res) => {
     res.json({
       currentPath: directoryPath,
       items: formattedItems,
-      parentPath: directoryPath ? directoryPath.split('/').slice(0, -1).join('/') : null
+      parentPath: directoryPath ? directoryPath.split('/').slice(0, -1).join('/') : null,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: totalItems,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        startIndex: startIndex + 1,
+        endIndex: Math.min(endIndex, totalItems)
+      }
     });
 
   } catch (error) {
