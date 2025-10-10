@@ -8,7 +8,7 @@ A modern, responsive web application that allows users to browse and download fi
 
 ## 🚀 Live Demo
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fandrewjschmitt%2Fazure-smb-file-browser%2Fmain%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fclipper-digital%2Fazure-smb-file-browser%2Fmain%2Fazuredeploy.json)
 
 *Deploy to your own Azure App Service to see it in action!*
 
@@ -49,7 +49,7 @@ A modern, responsive web application that allows users to browse and download fi
 
 ```bash
 # Clone the repository
-git clone https://github.com/andrewjschmitt/azure-smb-file-browser.git
+git clone https://github.com/clipper-digital/azure-smb-file-browser.git
 cd azure-smb-file-browser
 
 # Install dependencies

@@ -59,7 +59,7 @@
     },
     "repositoryUrl": {
       "type": "string",
-      "defaultValue": "https://github.com/andrewjschmitt/azure-smb-file-browser.git",
+      "defaultValue": "https://github.com/clipper-digital/azure-smb-file-browser.git",
       "metadata": {
         "description": "Repository URL"
       }
