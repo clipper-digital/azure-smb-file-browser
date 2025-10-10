@@ -3,12 +3,22 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const NodeCache = require('node-cache');
+let sharp;
+try {
+  sharp = require('sharp');
+} catch (error) {
+  console.warn('Sharp not available - thumbnails will be disabled:', error.message);
+}
 require('dotenv').config();
 
 const AzureStorageService = require('./lib/azureStorage');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Initialize thumbnail cache (24 hour TTL)
+const thumbnailCache = new NodeCache({ stdTTL: 86400, checkperiod: 3600 });
 
 // Initialize Azure Storage Service
 let storageService;
@@ -60,7 +70,132 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Helper function to determine if file is suitable for thumbnail generation
+const canGenerateThumbnail = (fileName) => {
+  const ext = path.extname(fileName).toLowerCase();
+  const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg'];
+  return imageExts.includes(ext);
+};
+
+// Generate thumbnail for supported file types
+const generateThumbnail = async (fileBuffer, fileName, size = 200) => {
+  if (!sharp) {
+    throw new Error('Sharp not available for thumbnail generation');
+  }
+  
+  const ext = path.extname(fileName).toLowerCase();
+  
+  if (canGenerateThumbnail(fileName)) {
+    try {
+      // For SVG files, we need special handling
+      if (ext === '.svg') {
+        return await sharp(fileBuffer)
+          .resize(size, size, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 85 })
+          .toBuffer();
+      }
+      
+      // For other image formats
+      return await sharp(fileBuffer)
+        .resize(size, size, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+    } catch (error) {
+      console.error(`Error generating thumbnail for ${fileName}:`, error.message);
+      throw error;
+    }
+  }
+  
+  throw new Error(`Unsupported file type for thumbnail: ${ext}`);
+};
+
 // API Routes
+
+// Thumbnail generation endpoint
+app.get('/api/thumbnail', async (req, res) => {
+  try {
+    const filePath = req.query.path;
+    const size = parseInt(req.query.size) || 200;
+    
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path is required' });
+    }
+    
+    // Validate and sanitize path
+    if (filePath.includes('..') || filePath.includes('\\')) {
+      return res.status(400).json({ error: 'Invalid file path' });
+    }
+    
+    // Check cache first
+    const cacheKey = `thumbnail_${filePath}_${size}`;
+    const etag = `"thumb-${Buffer.from(cacheKey).toString('base64')}"`;
+    
+    // Check if client has cached version
+    if (req.headers['if-none-match'] === etag) {
+      return res.status(304).end();
+    }
+    
+    const cachedThumbnail = thumbnailCache.get(cacheKey);
+    
+    if (cachedThumbnail) {
+      res.set({
+        'Content-Type': 'image/jpeg',
+        'Content-Length': cachedThumbnail.length,
+        'Cache-Control': 'public, max-age=86400, immutable',
+        'ETag': etag,
+        'Last-Modified': new Date(Date.now() - 3600000).toUTCString() // 1 hour ago
+      });
+      return res.send(cachedThumbnail);
+    }
+    
+    // Get file name to check if thumbnail generation is supported
+    const fileName = path.basename(filePath);
+    
+    if (!canGenerateThumbnail(fileName)) {
+      return res.status(415).json({ 
+        error: 'Thumbnail not supported for this file type',
+        supportedTypes: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg']
+      });
+    }
+    
+    // Download the file from Azure Storage
+    const fileData = await storageService.getFile(filePath);
+    
+    // Convert stream to buffer
+    const chunks = [];
+    for await (const chunk of fileData.content) {
+      chunks.push(chunk);
+    }
+    const fileBuffer = Buffer.concat(chunks);
+    
+    // Generate thumbnail
+    const thumbnailBuffer = await generateThumbnail(fileBuffer, fileName, size);
+    
+    // Cache the thumbnail
+    thumbnailCache.set(cacheKey, thumbnailBuffer);
+    
+    // Send thumbnail
+    res.set({
+      'Content-Type': 'image/jpeg',
+      'Content-Length': thumbnailBuffer.length,
+      'Cache-Control': 'public, max-age=86400, immutable',
+      'ETag': etag,
+      'Last-Modified': new Date().toUTCString()
+    });
+    
+    res.send(thumbnailBuffer);
+    
+  } catch (error) {
+    console.error('Error generating thumbnail:', error);
+    if (error.message.includes('not found')) {
+      res.status(404).json({ error: error.message });
+    } else if (error.message.includes('Sharp not available')) {
+      res.status(503).json({ error: 'Thumbnail generation service unavailable' });
+    } else {
+      res.status(500).json({ error: 'Failed to generate thumbnail' });
+    }
+  }
+});
 
 // Test endpoint to verify pagination deployment
 app.get('/api/pagination-test', (req, res) => {

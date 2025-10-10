@@ -146,6 +146,77 @@ const getFileIcon = (fileName, isDirectory) => {
     }
 };
 
+// Check if file supports thumbnail generation
+const supportsThumbnail = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg'];
+    return imageExts.includes(ext);
+};
+
+// Lazy loading intersection observer for thumbnails
+let thumbnailObserver = null;
+
+// Initialize thumbnail lazy loading
+const initThumbnailLazyLoading = () => {
+    if (!thumbnailObserver && window.IntersectionObserver) {
+        thumbnailObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const filePath = img.dataset.filePath;
+                    if (filePath) {
+                        loadThumbnail(img, filePath);
+                        thumbnailObserver.unobserve(img);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '50px' // Start loading 50px before coming into view
+        });
+    }
+};
+
+// Load thumbnail for an image element
+const loadThumbnail = async (img, filePath) => {
+    try {
+        img.classList.add('loading');
+        
+        // Use higher resolution on high-DPI displays
+        const pixelRatio = window.devicePixelRatio || 1;
+        const size = Math.min(400, Math.ceil(200 * pixelRatio)); // Cap at 400px for performance
+        
+        const thumbnailUrl = `/api/thumbnail?path=${encodeURIComponent(filePath)}&size=${size}`;
+        
+        // Create a new image to test if thumbnail loads successfully
+        const testImg = new Image();
+        testImg.onload = () => {
+            img.src = thumbnailUrl;
+            img.classList.remove('loading');
+            img.classList.remove('error');
+        };
+        testImg.onerror = () => {
+            img.classList.remove('loading');
+            img.classList.add('error');
+            img.innerHTML = '<i class="fas fa-image"></i>';
+        };
+        
+        // Add a timeout to prevent hanging
+        setTimeout(() => {
+            if (img.classList.contains('loading')) {
+                testImg.onerror();
+            }
+        }, 10000); // 10 second timeout
+        
+        testImg.src = thumbnailUrl;
+        
+    } catch (error) {
+        console.warn('Failed to load thumbnail for', filePath, error);
+        img.classList.remove('loading');
+        img.classList.add('error');
+        img.innerHTML = '<i class="fas fa-image"></i>';
+    }
+};
+
 const formatPath = (path) => {
     if (!path) {
         return rootFolder ? rootFolder.split('/').pop() : 'Root';
@@ -363,6 +434,7 @@ const renderFiles = () => {
     const html = currentFiles.map((file, index) => {
         const iconClass = getFileIcon(file.name, file.type === 'directory');
         const iconType = file.type === 'directory' ? 'folder' : 'file';
+        const hasThumbnail = file.type === 'file' && supportsThumbnail(file.name) && viewMode === 'grid';
         
         const actions = file.type === 'file' 
             ? `
@@ -387,10 +459,27 @@ const renderFiles = () => {
             `
             : '<div class="file-meta"><span>Folder</span></div>';
         
+        // Generate thumbnail for grid view
+        const iconContent = hasThumbnail 
+            ? `<img class="file-thumbnail loading" data-file-path="${file.path}" alt="${file.name}" />`
+            : `<i class="${iconClass}"></i>`;
+        
+        const itemClasses = [
+            'file-item',
+            file.type === 'directory' ? 'directory-item' : '',
+            hasThumbnail ? 'has-thumbnail' : ''
+        ].filter(Boolean).join(' ');
+        
+        const iconClasses = [
+            'file-icon',
+            iconType,
+            hasThumbnail ? 'has-thumbnail' : ''
+        ].filter(Boolean).join(' ');
+        
         return `
-            <div class="file-item ${file.type === 'directory' ? 'directory-item' : ''}" data-file-index="${index}">
-                <div class="file-icon ${iconType}">
-                    <i class="${iconClass}"></i>
+            <div class="${itemClasses}" data-file-index="${index}">
+                <div class="${iconClasses}">
+                    ${iconContent}
                 </div>
                 <div class="file-info">
                     <div class="file-name">${file.name}</div>
@@ -405,6 +494,24 @@ const renderFiles = () => {
     
     elements.fileList.innerHTML = html;
     elements.fileList.className = `file-list ${viewMode === 'grid' ? 'grid-view' : ''}`;
+    
+    // Initialize thumbnail lazy loading for grid view
+    if (viewMode === 'grid') {
+        initThumbnailLazyLoading();
+        
+        // Observe all thumbnail images for lazy loading
+        document.querySelectorAll('.file-thumbnail[data-file-path]').forEach(img => {
+            if (thumbnailObserver) {
+                thumbnailObserver.observe(img);
+            } else {
+                // Fallback for browsers without IntersectionObserver
+                const filePath = img.dataset.filePath;
+                if (filePath) {
+                    loadThumbnail(img, filePath);
+                }
+            }
+        });
+    }
     
     // Add event listeners after DOM is updated
     addFileEventListeners();
