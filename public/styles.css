@@ -337,6 +337,13 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: color 0.2s ease;
+}
+
+/* Hover effects for clickable file names in both views */
+.file-item:not(.directory-item) .file-name:hover {
+    color: #0078d4;
+    text-decoration: underline;
 }
 
 .file-meta {
@@ -438,6 +445,13 @@ body {
     transform: scale(1.02);
 }
 
+/* Hover effects for clickable file icons (non-thumbnail) */
+.file-item:not(.directory-item) .file-icon:not(.has-thumbnail):hover {
+    color: #0078d4;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
 .file-thumbnail.loading {
     background: linear-gradient(135deg, #f8f9fa, #e9ecef, #f8f9fa);
     background-size: 200% 200%;
@@ -537,7 +551,9 @@ body {
     box-sizing: border-box;
     text-align: center;
     word-wrap: break-word;
+    transition: color 0.2s ease;
 }
+
 
 /* PDF Thumbnail Placeholder */
 .file-thumbnail-placeholder {

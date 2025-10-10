@@ -724,6 +724,40 @@ const addFileEventListeners = () => {
         });
     });
     
+    // Add click listeners for file names and thumbnails to open preview
+    document.querySelectorAll('.file-item:not(.directory-item)').forEach((item) => {
+        const fileIndex = parseInt(item.getAttribute('data-file-index'));
+        const file = currentFiles[fileIndex];
+        
+        if (file && file.type === 'file') {
+            // Add click handler for file name
+            const fileName = item.querySelector('.file-name');
+            if (fileName) {
+                fileName.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('Opening preview for file:', file.path);
+                    showFilePreview(file.path, file.name);
+                });
+                
+                // Add hover effect for file names
+                fileName.style.cursor = 'pointer';
+            }
+            
+            // Add click handler for thumbnails
+            const thumbnail = item.querySelector('.file-thumbnail, .file-icon');
+            if (thumbnail) {
+                thumbnail.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('Opening preview for file:', file.path);
+                    showFilePreview(file.path, file.name);
+                });
+                
+                // Add hover effect for thumbnails/icons
+                thumbnail.style.cursor = 'pointer';
+            }
+        }
+    });
+    
     // Add click listeners for download buttons
     document.querySelectorAll('.download-btn').forEach((button) => {
         button.addEventListener('click', (e) => {
