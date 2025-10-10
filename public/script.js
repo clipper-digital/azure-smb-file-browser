@@ -645,7 +645,7 @@ const renderFiles = () => {
                     ${iconContent}
                 </div>
                 <div class="file-info">
-                    <div class="file-name">${file.name}</div>
+                    <div class="file-name" title="${file.name}">${file.name}</div>
                     ${metaData}
                 </div>
                 <div class="file-actions">
