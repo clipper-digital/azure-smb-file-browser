@@ -383,8 +383,8 @@ body {
 /* Grid view */
 .file-list.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
     padding: 1rem;
 }
 
@@ -395,6 +395,9 @@ body {
     border: 1px solid #ddd;
     border-radius: 8px;
     background-color: white;
+    min-height: 200px;
+    display: flex;
+    justify-content: space-between;
 }
 
 .file-list.grid-view .file-icon {
@@ -468,13 +471,30 @@ body {
 
 .file-list.grid-view .file-item.has-thumbnail .file-name {
     margin-top: 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1.2;
-    max-height: 2.4em;
+    font-size: 0.75rem;
+    line-height: 1.1;
+    max-height: 3.3em;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    word-break: break-word;
+    hyphens: auto;
+    padding: 0 0.25rem;
+}
+
+.file-list.grid-view .file-name {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.1;
+    max-height: 3.3em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+    hyphens: auto;
+    padding: 0 0.25rem;
 }
 
 /* PDF Thumbnail Placeholder */
@@ -500,50 +520,67 @@ body {
 }
 
 .pdf-placeholder {
-    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    background: linear-gradient(145deg, #fafafa, #f0f0f0);
+    border: 2px solid #dc3545;
 }
 
 .pdf-preview {
-    width: 80px;
-    height: 90px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 90px;
+    height: 100px;
+    background: linear-gradient(145deg, #ffffff, #fafafa);
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
+    position: relative;
+}
+
+.pdf-preview::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 0;
+    height: 0;
+    border-left: 15px solid #f8f9fa;
+    border-bottom: 15px solid transparent;
+    border-top: 2px solid #dc3545;
+    border-right: 2px solid #dc3545;
 }
 
 .pdf-header {
     width: 100%;
-    height: 6px;
-    background: linear-gradient(90deg, #dc3545, #dc3545 70%, transparent 70%);
-    border-radius: 2px;
+    height: 8px;
+    background: linear-gradient(90deg, #dc3545, #dc3545 75%, #f8d7da 75%);
+    border-radius: 3px;
+    margin-bottom: 2px;
 }
 
 .pdf-lines {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding-top: 4px;
+    gap: 4px;
+    padding-top: 6px;
 }
 
 .pdf-line {
-    height: 2px;
-    background: #dee2e6;
-    border-radius: 1px;
+    height: 3px;
+    background: linear-gradient(90deg, #6c757d, #adb5bd);
+    border-radius: 2px;
     width: 100%;
+    opacity: 0.8;
 }
 
 .pdf-line.short {
-    width: 60%;
+    width: 65%;
 }
 
 .pdf-line.medium {
-    width: 80%;
+    width: 85%;
 }
 
 .file-type-badge {
@@ -557,6 +594,19 @@ body {
     padding: 2px 6px;
     border-radius: 4px;
     backdrop-filter: blur(4px);
+    z-index: 2;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Ensure PDF placeholders are visible */
+.file-thumbnail-placeholder {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+.pdf-placeholder .pdf-preview {
+    display: flex !important;
+    visibility: visible !important;
 }
 
 /* Animation for PDF preview */

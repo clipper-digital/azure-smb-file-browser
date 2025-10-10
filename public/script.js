@@ -475,22 +475,24 @@ const renderFiles = () => {
         } else if (hasVisualThumbnail) {
             // Enhanced visual treatment for PDFs and other supported files
             const ext = file.name.split('.').pop().toLowerCase();
+            console.log('Processing visual thumbnail for:', file.name, 'ext:', ext, 'viewMode:', viewMode);
             if (ext === 'pdf') {
                 iconContent = `
                     <div class="file-thumbnail-placeholder pdf-placeholder">
                         <div class="pdf-preview">
                             <div class="pdf-header"></div>
                             <div class="pdf-lines">
-                                <div class="pdf-line"></div>
-                                <div class="pdf-line short"></div>
-                                <div class="pdf-line"></div>
-                                <div class="pdf-line medium"></div>
-                                <div class="pdf-line"></div>
+                                <div class="pdf-line" style="--line-index: 0"></div>
+                                <div class="pdf-line short" style="--line-index: 1"></div>
+                                <div class="pdf-line" style="--line-index: 2"></div>
+                                <div class="pdf-line medium" style="--line-index: 3"></div>
+                                <div class="pdf-line" style="--line-index: 4"></div>
                             </div>
                         </div>
                         <div class="file-type-badge">${ext.toUpperCase()}</div>
                     </div>
                 `;
+                console.log('Generated PDF thumbnail for:', file.name);
             } else {
                 iconContent = `<i class="${iconClass}"></i>`;
             }

@@ -51,8 +51,8 @@ async function main() {
   
   // Test endpoints
   const tests = [
+    { path: '/api/thumbnail-test', desc: 'Thumbnail System Status' },
     { path: '/api/pagination-test', desc: 'Pagination Test Endpoint' },
-    { path: '/api/pagination-test?page=2&limit=10', desc: 'Pagination Test with Params' },
     { path: '/api/health', desc: 'Health Check' },
     { path: '/api/browse?page=1&limit=10', desc: 'Browse API with Pagination' },
     { path: '/', desc: 'Frontend HTML' }
