@@ -62,6 +62,20 @@ const formatFileSize = (bytes) => {
 
 // API Routes
 
+// Test endpoint to verify pagination deployment
+app.get('/api/pagination-test', (req, res) => {
+  console.log('Pagination test endpoint hit');
+  res.json({ 
+    message: 'Pagination is deployed!', 
+    timestamp: new Date().toISOString(),
+    version: '2.0-with-pagination',
+    testParams: {
+      page: req.query.page || 'not provided',
+      limit: req.query.limit || 'not provided'
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   try {
@@ -89,6 +103,8 @@ app.get('/api/browse', async (req, res) => {
     const directoryPath = req.query.path || '';
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+    
+    console.log('Browse request received:', { path: directoryPath, page, limit, query: req.query });
     
     // Validate parameters
     if (directoryPath.includes('..') || directoryPath.includes('\\')) {
