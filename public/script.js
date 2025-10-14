@@ -1369,17 +1369,27 @@ const performSearch = async (term) => {
         // If we're starting a search (from empty to non-empty) and don't have all files loaded,
         // we need to reload the directory with all files
         if (wasEmpty && !nowEmpty && !allFilesLoaded) {
-            console.log('Starting search - loading all files');
             showSearchLoading(true);
             await loadDirectory(currentPath, 1, false, true);
         }
         // If we're clearing search (from non-empty to empty) and have all files loaded,
         // we should reload with pagination
         else if (!wasEmpty && nowEmpty && allFilesLoaded) {
-            console.log('Clearing search - reloading with pagination');
             showSearchLoading(true);
             allFilesLoaded = false;
             await loadDirectory(currentPath, 1, true, false);
+        }
+        // If we have search term and all files are loaded, just filter
+        else if (!nowEmpty && allFilesLoaded) {
+            currentPage = 1; // Reset to first page when searching
+            renderFiles();
+            updateUI();
+            updatePagination();
+        }
+        // If we have search term but no files loaded, load all files
+        else if (!nowEmpty && !allFilesLoaded) {
+            showSearchLoading(true);
+            await loadDirectory(currentPath, 1, false, true);
         }
         // Otherwise, just re-render with current data
         else {
@@ -1422,9 +1432,8 @@ const debouncedSearch = (term) => {
         clearTimeout(searchTimeout);
     }
     
-    // Update UI immediately for visual feedback
-    searchTerm = term;
-    updateSearchUI();
+    // Update UI immediately for visual feedback (but don't change searchTerm yet)
+    elements.searchInput.classList.toggle('has-text', term && term.trim() !== '');
     
     // If term is empty, clear immediately
     if (!term || term.trim() === '') {
