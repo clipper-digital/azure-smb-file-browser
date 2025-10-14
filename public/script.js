@@ -7,6 +7,8 @@ let currentPage = 1;
 let itemsPerPage = 20;
 let paginationData = null;
 let currentSort = 'date-desc'; // Default sort: newest files first
+let searchTerm = ''; // Current search filter
+let displayFiles = []; // Currently displayed files (after filtering and sorting)
 
 // PDF thumbnail cache
 const pdfThumbnailCache = new Map();
@@ -60,7 +62,10 @@ const elements = {
     nextPageBtnBottom: document.getElementById('nextPageBtnBottom'),
     lastPageBtnBottom: document.getElementById('lastPageBtnBottom'),
     pageNumbers: document.getElementById('pageNumbers'),
-    pageNumbersBottom: document.getElementById('pageNumbersBottom')
+    pageNumbersBottom: document.getElementById('pageNumbersBottom'),
+    // Search elements
+    searchInput: document.getElementById('searchInput'),
+    searchClear: document.getElementById('searchClear')
 };
 
 // Utility functions
@@ -193,6 +198,18 @@ const truncateFilename = (filename, maxLength = 25) => {
         return filename;
     }
     return filename.substring(0, maxLength) + '...';
+};
+
+// Filter files based on search term
+const filterFiles = (files, searchTerm) => {
+    if (!searchTerm || searchTerm.trim() === '') {
+        return files;
+    }
+    
+    const term = searchTerm.toLowerCase().trim();
+    return files.filter(file => 
+        file.name.toLowerCase().includes(term)
+    );
 };
 
 // Sort files based on current sort setting
@@ -497,10 +514,14 @@ const loadDirectory = async (path = '', page = 1, resetPagination = false) => {
     console.log('loadDirectory called with path:', path, 'page:', page);
     showLoading();
     
-    // Reset pagination when navigating to different directory
+    // Reset pagination and search when navigating to different directory
     if (resetPagination || path !== currentPath) {
         currentPage = 1;
         page = 1;
+        // Clear search when navigating to a different directory
+        if (path !== currentPath) {
+            clearSearch();
+        }
     } else {
         currentPage = page;
     }
@@ -651,13 +672,23 @@ const renderFiles = () => {
         return;
     }
     
+    // Apply filtering and sorting to current files
+    displayFiles = filterFiles(currentFiles, searchTerm);
+    displayFiles = sortFiles(displayFiles, currentSort);
+    
+    // Check if filtered results are empty
+    if (displayFiles.length === 0 && searchTerm) {
+        // Show "no results" state for search
+        elements.fileList.innerHTML = '';
+        elements.emptyStateMessage.textContent = `No files found matching "${searchTerm}"`;
+        showElement(elements.emptyState);
+        return;
+    }
+    
     // Hide empty state and show file list
     hideElement(elements.emptyState);
     
-    // Apply sorting to current files and store globally
-    currentFiles = sortFiles(currentFiles, currentSort);
-    
-    const html = currentFiles.map((file, index) => {
+    const html = displayFiles.map((file, index) => {
         const iconClass = getFileIcon(file.name, file.type === 'directory');
         const iconType = file.type === 'directory' ? 'folder' : 'file';
         const hasThumbnail = file.type === 'file' && supportsThumbnail(file.name) && viewMode === 'grid';
@@ -761,7 +792,7 @@ const addFileEventListeners = () => {
             }
             
             const fileIndex = parseInt(item.getAttribute('data-file-index'));
-            const file = currentFiles[fileIndex];
+            const file = displayFiles[fileIndex];
             if (file && file.type === 'directory') {
                 console.log('Navigating to directory:', file.path);
                 loadDirectory(file.path, 1, true); // Reset pagination when navigating to subdirectory
@@ -772,7 +803,7 @@ const addFileEventListeners = () => {
     // Add click listeners for file names and thumbnails to open preview
     document.querySelectorAll('.file-item:not(.directory-item)').forEach((item) => {
         const fileIndex = parseInt(item.getAttribute('data-file-index'));
-        const file = currentFiles[fileIndex];
+        const file = displayFiles[fileIndex];
         
         if (file && file.type === 'file') {
             // Add click handler for file name
@@ -808,7 +839,7 @@ const addFileEventListeners = () => {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
             const fileIndex = parseInt(button.getAttribute('data-file-index'));
-            const file = currentFiles[fileIndex];
+            const file = displayFiles[fileIndex];
             if (file) {
                 console.log('Downloading file:', file.path);
                 downloadFile(file.path);
@@ -821,7 +852,7 @@ const addFileEventListeners = () => {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
             const fileIndex = parseInt(button.getAttribute('data-file-index'));
-            const file = currentFiles[fileIndex];
+            const file = displayFiles[fileIndex];
             if (file) {
                 console.log('Showing file info:', file.path);
                 showFileInfo(file.path);
@@ -834,7 +865,7 @@ const addFileEventListeners = () => {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
             const fileIndex = parseInt(button.getAttribute('data-file-index'));
-            const file = currentFiles[fileIndex];
+            const file = displayFiles[fileIndex];
             if (file) {
                 console.log('Showing file preview:', file.path);
                 showFilePreview(file.path, file.name);
@@ -844,12 +875,15 @@ const addFileEventListeners = () => {
 };
 
 const updateUI = () => {
-    // Update item count based on pagination data
+    // Update item count based on pagination data and search filter
     if (paginationData) {
         const { totalItems, startIndex, endIndex } = paginationData;
-        elements.itemCount.textContent = `Showing ${startIndex}-${endIndex} of ${totalItems} items`;
+        const searchSuffix = searchTerm ? ` (filtered from ${currentFiles.length})` : '';
+        elements.itemCount.textContent = `Showing ${startIndex}-${endIndex} of ${totalItems} items${searchSuffix}`;
     } else {
-        elements.itemCount.textContent = `${currentFiles.length} item${currentFiles.length !== 1 ? 's' : ''}`;
+        const count = searchTerm ? displayFiles.length : currentFiles.length;
+        const searchSuffix = searchTerm ? ` (filtered from ${currentFiles.length})` : '';
+        elements.itemCount.textContent = `${count} item${count !== 1 ? 's' : ''}${searchSuffix}`;
     }
     
     // Update current path
@@ -1243,6 +1277,51 @@ elements.gridViewBtn.addEventListener('click', () => {
 elements.sortBy.addEventListener('change', (e) => {
     currentSort = e.target.value;
     renderFiles(); // Re-render with new sort
+});
+
+// Search functionality
+const performSearch = (term) => {
+    searchTerm = term;
+    updateSearchUI();
+    renderFiles();
+    updateUI();
+};
+
+const clearSearch = () => {
+    searchTerm = '';
+    elements.searchInput.value = '';
+    updateSearchUI();
+    renderFiles();
+    updateUI();
+};
+
+const updateSearchUI = () => {
+    const hasSearch = searchTerm && searchTerm.trim() !== '';
+    
+    // Toggle search input styling
+    elements.searchInput.classList.toggle('has-text', hasSearch);
+    
+    // Show/hide clear button
+    elements.searchClear.style.display = hasSearch ? 'flex' : 'none';
+};
+
+// Search input event listeners
+elements.searchInput.addEventListener('input', (e) => {
+    const term = e.target.value;
+    performSearch(term);
+});
+
+// Clear search button
+elements.searchClear.addEventListener('click', () => {
+    clearSearch();
+    elements.searchInput.focus();
+});
+
+// Search input keyboard shortcuts
+elements.searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        clearSearch();
+    }
 });
 
 elements.closeModal.addEventListener('click', closeModal);
