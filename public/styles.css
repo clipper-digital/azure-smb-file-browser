@@ -1141,15 +1141,19 @@ body {
     }
     
     .pagination-controls {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
+        flex-direction: row;
+        gap: 0.5rem;
+        align-items: center;
     }
     
-    .pagination-left,
+    .pagination-left {
+        gap: 0.5rem;
+    }
+    
     .pagination-right {
-        justify-content: center;
+        gap: 0.25rem;
         flex-wrap: wrap;
+        justify-content: flex-end;
     }
     
     .pagination-info {
@@ -1169,5 +1173,16 @@ body {
     
     .header h1 {
         font-size: 1.25rem;
+    }
+    
+    .pagination-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .pagination-left,
+    .pagination-right {
+        justify-content: center;
     }
 }
