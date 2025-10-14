@@ -1410,6 +1410,9 @@ const showSearchLoading = (show) => {
 
 const clearSearch = async () => {
     if (searchTerm && searchTerm.trim() !== '') {
+        // Clear the input field first
+        elements.searchInput.value = '';
+        // Then perform the search clear
         await performSearch('');
     }
 };
@@ -1463,6 +1466,7 @@ elements.searchClear.addEventListener('click', async () => {
 elements.searchInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Escape') {
         await clearSearch();
+        elements.searchInput.blur(); // Remove focus after clearing
     }
 });
 
