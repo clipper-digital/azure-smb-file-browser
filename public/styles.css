@@ -998,11 +998,16 @@ body {
     margin-bottom: 1rem;
 }
 
-.pagination-left,
-.pagination-right {
+.pagination-left {
     display: flex;
     align-items: center;
     gap: 1rem;
+}
+
+.pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .items-per-page {
@@ -1031,12 +1036,6 @@ body {
     font-size: 0.875rem;
     color: #666;
     white-space: nowrap;
-}
-
-.pagination-nav {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
 }
 
 .page-numbers {
@@ -1079,7 +1078,7 @@ body {
     font-size: 0.875rem;
 }
 
-.pagination-nav .btn {
+.pagination-right .btn {
     min-width: 2rem;
     height: 2rem;
     padding: 0;
@@ -1088,7 +1087,7 @@ body {
     justify-content: center;
 }
 
-.pagination-nav .btn:disabled {
+.pagination-right .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
