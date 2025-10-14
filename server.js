@@ -264,45 +264,42 @@ app.get('/api/browse', async (req, res) => {
     const directoryPath = req.query.path || '';
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+    const fetchAll = req.query.all === 'true'; // New parameter to fetch all items
     
-    console.log('Browse request received:', { path: directoryPath, page, limit, query: req.query });
+    console.log('Browse request received:', { path: directoryPath, page, limit, fetchAll, query: req.query });
     
     // Validate parameters
     if (directoryPath.includes('..') || directoryPath.includes('\\')) {
       return res.status(400).json({ error: 'Invalid path' });
     }
     
-    if (page < 1) {
-      return res.status(400).json({ error: 'Page must be >= 1' });
-    }
-    
-    if (![10, 20, 50].includes(limit)) {
-      return res.status(400).json({ error: 'Limit must be 10, 20, or 50' });
+    if (!fetchAll) {
+      if (page < 1) {
+        return res.status(400).json({ error: 'Page must be >= 1' });
+      }
+      
+      if (![10, 20, 50].includes(limit)) {
+        return res.status(400).json({ error: 'Limit must be 10, 20, or 50' });
+      }
     }
 
     const allItems = await storageService.listDirectory(directoryPath);
     
-    // Calculate pagination
-    const totalItems = allItems.length;
-    const totalPages = Math.ceil(totalItems / limit);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedItems = allItems.slice(startIndex, endIndex);
+    let itemsToReturn;
+    let paginationInfo = null;
     
-    // Format the response
-    const formattedItems = paginatedItems.map(item => ({
-      ...item,
-      sizeFormatted: item.size ? formatFileSize(item.size) : null,
-      lastModifiedFormatted: item.lastModified 
-        ? new Date(item.lastModified).toLocaleString() 
-        : 'Date unknown'
-    }));
-
-    res.json({
-      currentPath: directoryPath,
-      items: formattedItems,
-      parentPath: directoryPath ? directoryPath.split('/').slice(0, -1).join('/') : null,
-      pagination: {
+    if (fetchAll) {
+      // Return all items for search functionality
+      itemsToReturn = allItems;
+    } else {
+      // Calculate pagination for normal browsing
+      const totalItems = allItems.length;
+      const totalPages = Math.ceil(totalItems / limit);
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      itemsToReturn = allItems.slice(startIndex, endIndex);
+      
+      paginationInfo = {
         currentPage: page,
         totalPages: totalPages,
         totalItems: totalItems,
@@ -311,8 +308,31 @@ app.get('/api/browse', async (req, res) => {
         hasPrevPage: page > 1,
         startIndex: startIndex + 1,
         endIndex: Math.min(endIndex, totalItems)
-      }
-    });
+      };
+    }
+    
+    // Format the response
+    const formattedItems = itemsToReturn.map(item => ({
+      ...item,
+      sizeFormatted: item.size ? formatFileSize(item.size) : null,
+      lastModifiedFormatted: item.lastModified 
+        ? new Date(item.lastModified).toLocaleString() 
+        : 'Date unknown'
+    }));
+
+    const response = {
+      currentPath: directoryPath,
+      items: formattedItems,
+      parentPath: directoryPath ? directoryPath.split('/').slice(0, -1).join('/') : null,
+      fetchedAll: fetchAll
+    };
+    
+    // Only include pagination info for paginated requests
+    if (paginationInfo) {
+      response.pagination = paginationInfo;
+    }
+    
+    res.json(response);
 
   } catch (error) {
     console.error('Error browsing directory:', error);

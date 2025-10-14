@@ -203,6 +203,14 @@ body {
     color: #333;
 }
 
+.search-loading {
+    position: absolute;
+    right: 2rem;
+    color: #0078d4;
+    font-size: 0.75rem;
+    animation: spin 1s linear infinite;
+}
+
 .sort-controls {
     display: flex;
     align-items: center;
@@ -595,6 +603,11 @@ body {
 @keyframes loading-sweep {
     0% { left: -100%; }
     100% { left: 100%; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .file-thumbnail.error {

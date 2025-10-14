@@ -9,6 +9,8 @@ let paginationData = null;
 let currentSort = 'date-desc'; // Default sort: newest files first
 let searchTerm = ''; // Current search filter
 let displayFiles = []; // Currently displayed files (after filtering and sorting)
+let allFilesLoaded = false; // Whether all files in current directory are loaded
+let searchTimeout = null; // Debounce timeout for search
 
 // PDF thumbnail cache
 const pdfThumbnailCache = new Map();
@@ -65,7 +67,8 @@ const elements = {
     pageNumbersBottom: document.getElementById('pageNumbersBottom'),
     // Search elements
     searchInput: document.getElementById('searchInput'),
-    searchClear: document.getElementById('searchClear')
+    searchClear: document.getElementById('searchClear'),
+    searchLoading: document.getElementById('searchLoading')
 };
 
 // Utility functions
@@ -210,6 +213,29 @@ const filterFiles = (files, searchTerm) => {
     return files.filter(file => 
         file.name.toLowerCase().includes(term)
     );
+};
+
+// Apply client-side pagination to filtered results
+const applyClientSidePagination = (files, page, limit) => {
+    const totalItems = files.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedFiles = files.slice(startIndex, endIndex);
+    
+    return {
+        items: paginatedFiles,
+        pagination: {
+            currentPage: page,
+            totalPages: totalPages,
+            totalItems: totalItems,
+            itemsPerPage: limit,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1,
+            startIndex: startIndex + 1,
+            endIndex: Math.min(endIndex, totalItems)
+        }
+    };
 };
 
 // Sort files based on current sort setting
@@ -510,14 +536,15 @@ const checkConnection = async () => {
     }
 };
 
-const loadDirectory = async (path = '', page = 1, resetPagination = false) => {
-    console.log('loadDirectory called with path:', path, 'page:', page);
+const loadDirectory = async (path = '', page = 1, resetPagination = false, forceLoadAll = false) => {
+    console.log('loadDirectory called with path:', path, 'page:', page, 'forceLoadAll:', forceLoadAll);
     showLoading();
     
     // Reset pagination and search when navigating to different directory
     if (resetPagination || path !== currentPath) {
         currentPage = 1;
         page = 1;
+        allFilesLoaded = false;
         // Clear search when navigating to a different directory
         if (path !== currentPath) {
             clearSearch();
@@ -527,7 +554,16 @@ const loadDirectory = async (path = '', page = 1, resetPagination = false) => {
     }
     
     try {
-        const url = `/api/browse?path=${encodeURIComponent(path)}&page=${page}&limit=${itemsPerPage}`;
+        // Determine if we should fetch all files (for search) or paginated results
+        const shouldFetchAll = forceLoadAll || (searchTerm && searchTerm.trim() !== '');
+        let url;
+        
+        if (shouldFetchAll) {
+            url = `/api/browse?path=${encodeURIComponent(path)}&all=true`;
+        } else {
+            url = `/api/browse?path=${encodeURIComponent(path)}&page=${page}&limit=${itemsPerPage}`;
+        }
+        
         console.log('Fetching:', url);
         const response = await fetch(url);
         
@@ -541,10 +577,19 @@ const loadDirectory = async (path = '', page = 1, resetPagination = false) => {
         
         currentPath = data.currentPath;
         currentFiles = data.items;
-        paginationData = data.pagination;
+        allFilesLoaded = data.fetchedAll || false;
+        
+        // Handle pagination data
+        if (data.fetchedAll) {
+            // When all files are loaded, we'll handle pagination client-side
+            paginationData = null;
+        } else {
+            paginationData = data.pagination;
+        }
         
         console.log('Updated currentPath:', currentPath);
-        console.log('Updated currentFiles:', currentFiles);
+        console.log('Updated currentFiles:', currentFiles.length, 'items');
+        console.log('All files loaded:', allFilesLoaded);
         console.log('Updated paginationData:', paginationData);
         
         updateBreadcrumb();
@@ -673,16 +718,29 @@ const renderFiles = () => {
     }
     
     // Apply filtering and sorting to current files
-    displayFiles = filterFiles(currentFiles, searchTerm);
-    displayFiles = sortFiles(displayFiles, currentSort);
+    let filteredFiles = filterFiles(currentFiles, searchTerm);
+    filteredFiles = sortFiles(filteredFiles, currentSort);
     
     // Check if filtered results are empty
-    if (displayFiles.length === 0 && searchTerm) {
+    if (filteredFiles.length === 0 && searchTerm) {
         // Show "no results" state for search
         elements.fileList.innerHTML = '';
         elements.emptyStateMessage.textContent = `No files found matching "${searchTerm}"`;
         showElement(elements.emptyState);
         return;
+    }
+    
+    // Apply client-side pagination if all files are loaded (for search)
+    if (allFilesLoaded && filteredFiles.length > itemsPerPage) {
+        const paginationResult = applyClientSidePagination(filteredFiles, currentPage, itemsPerPage);
+        displayFiles = paginationResult.items;
+        paginationData = paginationResult.pagination;
+    } else {
+        displayFiles = filteredFiles;
+        // If we have fewer items than itemsPerPage, no pagination needed
+        if (allFilesLoaded && filteredFiles.length <= itemsPerPage) {
+            paginationData = null;
+        }
     }
     
     // Hide empty state and show file list
@@ -989,13 +1047,33 @@ const updatePageNumbers = (currentPage, totalPages) => {
 
 const goToPage = (page) => {
     if (paginationData && page >= 1 && page <= paginationData.totalPages && page !== paginationData.currentPage) {
-        loadDirectory(currentPath, page, false);
+        currentPage = page;
+        
+        if (allFilesLoaded) {
+            // Client-side pagination for search results
+            renderFiles();
+            updateUI();
+            updatePagination();
+        } else {
+            // Server-side pagination for normal browsing
+            loadDirectory(currentPath, page, false);
+        }
     }
 };
 
 const changeItemsPerPage = (newLimit) => {
     itemsPerPage = newLimit;
-    loadDirectory(currentPath, 1, true); // Reset to first page
+    currentPage = 1;
+    
+    if (allFilesLoaded) {
+        // Client-side pagination for search results
+        renderFiles();
+        updateUI();
+        updatePagination();
+    } else {
+        // Server-side pagination for normal browsing
+        loadDirectory(currentPath, 1, true); // Reset to first page
+    }
 };
 
 const setViewMode = (mode) => {
@@ -1280,19 +1358,50 @@ elements.sortBy.addEventListener('change', (e) => {
 });
 
 // Search functionality
-const performSearch = (term) => {
+const performSearch = async (term) => {
+    const wasEmpty = !searchTerm || searchTerm.trim() === '';
+    const nowEmpty = !term || term.trim() === '';
+    
     searchTerm = term;
     updateSearchUI();
-    renderFiles();
-    updateUI();
+    
+    try {
+        // If we're starting a search (from empty to non-empty) and don't have all files loaded,
+        // we need to reload the directory with all files
+        if (wasEmpty && !nowEmpty && !allFilesLoaded) {
+            console.log('Starting search - loading all files');
+            showSearchLoading(true);
+            await loadDirectory(currentPath, 1, false, true);
+        }
+        // If we're clearing search (from non-empty to empty) and have all files loaded,
+        // we should reload with pagination
+        else if (!wasEmpty && nowEmpty && allFilesLoaded) {
+            console.log('Clearing search - reloading with pagination');
+            showSearchLoading(true);
+            allFilesLoaded = false;
+            await loadDirectory(currentPath, 1, true, false);
+        }
+        // Otherwise, just re-render with current data
+        else {
+            currentPage = 1; // Reset to first page when searching
+            renderFiles();
+            updateUI();
+            updatePagination();
+        }
+    } finally {
+        showSearchLoading(false);
+    }
 };
 
-const clearSearch = () => {
-    searchTerm = '';
-    elements.searchInput.value = '';
-    updateSearchUI();
-    renderFiles();
-    updateUI();
+const showSearchLoading = (show) => {
+    elements.searchLoading.style.display = show ? 'block' : 'none';
+    elements.searchClear.style.display = (show || !searchTerm || searchTerm.trim() === '') ? 'none' : 'flex';
+};
+
+const clearSearch = async () => {
+    if (searchTerm && searchTerm.trim() !== '') {
+        await performSearch('');
+    }
 };
 
 const updateSearchUI = () => {
@@ -1301,26 +1410,50 @@ const updateSearchUI = () => {
     // Toggle search input styling
     elements.searchInput.classList.toggle('has-text', hasSearch);
     
-    // Show/hide clear button
-    elements.searchClear.style.display = hasSearch ? 'flex' : 'none';
+    // Show/hide clear button (but not if loading)
+    const isLoading = elements.searchLoading.style.display === 'block';
+    elements.searchClear.style.display = (hasSearch && !isLoading) ? 'flex' : 'none';
+};
+
+// Debounced search function to avoid excessive API calls
+const debouncedSearch = (term) => {
+    // Clear existing timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // Update UI immediately for visual feedback
+    searchTerm = term;
+    updateSearchUI();
+    
+    // If term is empty, clear immediately
+    if (!term || term.trim() === '') {
+        performSearch(term);
+        return;
+    }
+    
+    // Otherwise, debounce for 300ms
+    searchTimeout = setTimeout(() => {
+        performSearch(term);
+    }, 300);
 };
 
 // Search input event listeners
 elements.searchInput.addEventListener('input', (e) => {
     const term = e.target.value;
-    performSearch(term);
+    debouncedSearch(term);
 });
 
 // Clear search button
-elements.searchClear.addEventListener('click', () => {
-    clearSearch();
+elements.searchClear.addEventListener('click', async () => {
+    await clearSearch();
     elements.searchInput.focus();
 });
 
 // Search input keyboard shortcuts
-elements.searchInput.addEventListener('keydown', (e) => {
+elements.searchInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Escape') {
-        clearSearch();
+        await clearSearch();
     }
 });
 
