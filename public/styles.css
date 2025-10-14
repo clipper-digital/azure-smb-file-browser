@@ -982,13 +982,10 @@ body {
 
 /* Pagination */
 .pagination-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     padding: 1rem 0;
     border-top: 1px solid #e1e1e1;
     margin-top: 1rem;
-    gap: 1rem;
+    overflow: hidden;
 }
 
 .pagination-controls:first-of-type {
@@ -999,12 +996,14 @@ body {
 }
 
 .pagination-left {
+    float: left;
     display: flex;
     align-items: center;
     gap: 1rem;
 }
 
 .pagination-right {
+    float: right;
     display: flex;
     align-items: center;
     gap: 0.25rem;
@@ -1144,16 +1143,19 @@ body {
         flex-direction: row;
         gap: 0.5rem;
         align-items: center;
+        justify-content: space-between;
     }
     
     .pagination-left {
         gap: 0.5rem;
+        flex: 1;
     }
     
     .pagination-right {
         gap: 0.25rem;
         flex-wrap: wrap;
         justify-content: flex-end;
+        flex-shrink: 0;
     }
     
     .pagination-info {
