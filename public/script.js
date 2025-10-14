@@ -6,6 +6,7 @@ let rootFolder = null; // Will be set from server
 let currentPage = 1;
 let itemsPerPage = 20;
 let paginationData = null;
+let currentSort = 'date-desc'; // Default sort: newest files first
 
 // PDF thumbnail cache
 const pdfThumbnailCache = new Map();
@@ -27,6 +28,7 @@ const elements = {
     emptyStateMessage: document.getElementById('emptyStateMessage'),
     refreshBtn: document.getElementById('refreshBtn'),
     backBtn: document.getElementById('backBtn'),
+    sortBy: document.getElementById('sortBy'),
     listViewBtn: document.getElementById('listViewBtn'),
     gridViewBtn: document.getElementById('gridViewBtn'),
     itemCount: document.getElementById('itemCount'),
@@ -191,6 +193,46 @@ const truncateFilename = (filename, maxLength = 25) => {
         return filename;
     }
     return filename.substring(0, maxLength) + '...';
+};
+
+// Sort files based on current sort setting
+const sortFiles = (files, sortBy) => {
+    const sortedFiles = [...files];
+    
+    // Separate directories and files
+    const directories = sortedFiles.filter(f => f.type === 'directory');
+    const regularFiles = sortedFiles.filter(f => f.type === 'file');
+    
+    // Sort directories by name (always alphabetical)
+    directories.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Sort files based on selected option
+    switch (sortBy) {
+        case 'name-asc':
+            regularFiles.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'name-desc':
+            regularFiles.sort((a, b) => b.name.localeCompare(a.name));
+            break;
+        case 'date-asc':
+            regularFiles.sort((a, b) => {
+                const dateA = a.lastModified ? new Date(a.lastModified) : new Date(0);
+                const dateB = b.lastModified ? new Date(b.lastModified) : new Date(0);
+                return dateA - dateB;
+            });
+            break;
+        case 'date-desc':
+        default:
+            regularFiles.sort((a, b) => {
+                const dateA = a.lastModified ? new Date(a.lastModified) : new Date(0);
+                const dateB = b.lastModified ? new Date(b.lastModified) : new Date(0);
+                return dateB - dateA;
+            });
+            break;
+    }
+    
+    // Return directories first, then sorted files
+    return [...directories, ...regularFiles];
 };
 
 // Check if file supports visual thumbnail treatment (including PDFs)
@@ -611,6 +653,9 @@ const renderFiles = () => {
     
     // Hide empty state and show file list
     hideElement(elements.emptyState);
+    
+    // Apply sorting to current files and store globally
+    currentFiles = sortFiles(currentFiles, currentSort);
     
     const html = currentFiles.map((file, index) => {
         const iconClass = getFileIcon(file.name, file.type === 'directory');
@@ -1194,6 +1239,12 @@ elements.gridViewBtn.addEventListener('click', () => {
     setViewMode('grid');
 });
 
+// Sort dropdown event listener
+elements.sortBy.addEventListener('change', (e) => {
+    currentSort = e.target.value;
+    renderFiles(); // Re-render with new sort
+});
+
 elements.closeModal.addEventListener('click', closeModal);
 elements.closeModalBtn.addEventListener('click', closeModal);
 
@@ -1284,6 +1335,9 @@ const init = async () => {
     if (!isPdfJsAvailable()) {
         console.warn('PDF.js not available - PDF thumbnails will be disabled');
     }
+    
+    // Initialize sort dropdown to default value
+    elements.sortBy.value = currentSort;
     
     // Check connection status
     await checkConnection();

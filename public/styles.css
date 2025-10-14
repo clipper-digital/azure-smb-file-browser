@@ -129,7 +129,41 @@ body {
 .toolbar-left,
 .toolbar-right {
     display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
+}
+
+.sort-controls label {
+    font-size: 0.875rem;
+    color: #666;
+    white-space: nowrap;
+}
+
+.sort-select {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    color: #333;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+.sort-select:hover {
+    border-color: #999;
 }
 
 .view-toggle {

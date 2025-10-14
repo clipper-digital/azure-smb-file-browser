@@ -38,6 +38,15 @@
                     </button>
                 </div>
                 <div class="toolbar-right">
+                    <div class="sort-controls">
+                        <label for="sortBy">Sort by:</label>
+                        <select id="sortBy" class="sort-select">
+                            <option value="date-desc">Date (Newest First)</option>
+                            <option value="date-asc">Date (Oldest First)</option>
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                        </select>
+                    </div>
                     <div class="view-toggle">
                         <button class="btn btn-sm active" id="listViewBtn">
                             <i class="fas fa-list"></i>
