@@ -1,10 +1,14 @@
-# Azure SMB File Browser 🗂️
+# Azure Storage Browser 🗂️
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Azure](https://img.shields.io/badge/Azure-Storage-blue.svg)](https://azure.microsoft.com/en-us/services/storage/)
 
-A modern, responsive web application that allows users to browse and download files from Azure Storage SMB/File Share through an intuitive web interface. Built with Node.js and Express, featuring file previews, authentication integration, and enterprise-ready deployment.
+A modern, responsive web application that allows users to browse and download files from Azure Storage (File Shares or Blob Containers) through an intuitive web interface. Built with Node.js and Express, featuring file previews, authentication integration, and enterprise-ready deployment.
+
+**Supports both:**
+- **Azure File Shares (SMB)** - Traditional hierarchical file storage
+- **Azure Blob Storage** - Scalable object storage with virtual directories
 
 ## 🚀 Live Demo
 
@@ -30,19 +34,23 @@ A modern, responsive web application that allows users to browse and download fi
 
 ## Features
 
-- **File Browsing**: Navigate through directories in your Azure File Share
-- **Configurable Root Folder**: Start browsing from a specific subfolder instead of the file share root
+- **Dual Storage Support**: Works with both Azure File Shares (SMB) and Blob Containers
+- **File Browsing**: Navigate through directories/virtual folders in your Azure Storage
+- **Configurable Root Folder**: Start browsing from a specific subfolder/prefix
 - **File Download**: Download individual files directly from the web interface
 - **File Information**: View detailed file properties including size, modification date, and content type
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 - **Security**: Built-in authentication, rate limiting, and input validation
 - **Real-time Status**: Connection status indicator for Azure Storage
 - **Multiple Views**: Switch between list and grid view modes
+- **Easy Switching**: Simple configuration to switch between storage types
 
 ## Prerequisites
 
 - Node.js 18+ 
-- Azure Storage Account with File Share configured
+- Azure Storage Account with either:
+  - File Share configured (for SMB storage), OR
+  - Blob Container created (for blob storage)
 - Azure App Service (for deployment)
 
 ## 🏁 Quick Start
@@ -84,16 +92,32 @@ npm start
    ```
    
    Edit `.env` and add your Azure Storage credentials:
+   
+   **For File Share (SMB) Storage:**
    ```
+   STORAGE_TYPE=fileshare
    AZURE_STORAGE_ACCOUNT_NAME=your_storage_account_name
    AZURE_STORAGE_ACCOUNT_KEY=your_storage_account_key
    AZURE_STORAGE_FILE_SHARE_NAME=your_file_share_name
    
-   # Alternative: Use connection string
-   # AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
-   
    # Optional: Start browsing from a specific subfolder
    # ROOT_FOLDER=documents/public
+   ```
+   
+   **For Blob Storage:**
+   ```
+   STORAGE_TYPE=blob
+   AZURE_STORAGE_ACCOUNT_NAME=your_storage_account_name
+   AZURE_STORAGE_ACCOUNT_KEY=your_storage_account_key
+   AZURE_STORAGE_CONTAINER_NAME=your_container_name
+   
+   # Optional: Start browsing from a specific prefix
+   # ROOT_FOLDER=archive/2024
+   ```
+   
+   **Alternative: Use connection string for either type:**
+   ```
+   AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
    ```
 
 4. **Start the development server**:
@@ -105,6 +129,8 @@ npm start
    Open your browser to `http://localhost:3000`
 
 ## Azure Storage Setup
+
+### Option 1: File Share (SMB) Setup
 
 1. **Create a Storage Account**:
    - Go to the Azure Portal
@@ -118,6 +144,23 @@ npm start
 
 3. **Upload test files** (optional):
    - Use Azure Storage Explorer or the portal to upload some test files and folders
+
+### Option 2: Blob Container Setup
+
+1. **Create a Storage Account** (if you don't have one):
+   - Go to the Azure Portal
+   - Create a new Storage Account
+   - Note the account name and access key
+
+2. **Create a Blob Container**:
+   - In your Storage Account, go to "Containers"
+   - Create a new container
+   - Set the public access level (typically "Private")
+   - Note the container name
+
+3. **Upload test blobs** (optional):
+   - Use Azure Storage Explorer or the portal to upload some test files
+   - You can organize files with "/" in the blob names to create virtual directories
 
 ## Azure App Service Deployment
 
@@ -153,12 +196,25 @@ npm start
 5. **Set environment variables**:
    - Go to App Service → Configuration → Application Settings
    - Add the required environment variables:
+   
+   **For File Share:**
      ```
+     STORAGE_TYPE = fileshare
      AZURE_STORAGE_ACCOUNT_NAME = your_storage_account_name
      AZURE_STORAGE_ACCOUNT_KEY = your_storage_account_key
      AZURE_STORAGE_FILE_SHARE_NAME = your_file_share_name
      NODE_ENV = production
      ROOT_FOLDER = optional_subfolder_path
+     ```
+   
+   **For Blob Container:**
+     ```
+     STORAGE_TYPE = blob
+     AZURE_STORAGE_ACCOUNT_NAME = your_storage_account_name
+     AZURE_STORAGE_ACCOUNT_KEY = your_storage_account_key
+     AZURE_STORAGE_CONTAINER_NAME = your_container_name
+     NODE_ENV = production
+     ROOT_FOLDER = optional_prefix
      ```
 
 5. **Configure Authentication (Optional but Recommended)**:
@@ -232,19 +288,23 @@ The Azure Resource Manager template supports the following parameters:
 
 ### Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `AZURE_STORAGE_ACCOUNT_NAME` | Yes* | Azure Storage account name |
-| `AZURE_STORAGE_ACCOUNT_KEY` | Yes* | Azure Storage account access key |
-| `AZURE_STORAGE_FILE_SHARE_NAME` | Yes | Name of the file share to browse |
-| `AZURE_STORAGE_CONNECTION_STRING` | Yes* | Alternative to account name/key |
-| `ROOT_FOLDER` | No | Start browsing from specific subfolder (e.g., "documents/public") |
-| `PORT` | No | Server port (default: 3000) |
-| `NODE_ENV` | No | Environment (development/production) |
-| `RATE_LIMIT_WINDOW_MS` | No | Rate limiting window (default: 15min) |
-| `RATE_LIMIT_MAX_REQUESTS` | No | Max requests per window (default: 100) |
+|| Variable | Required | Description |
+||----------|----------|-------------|
+|| `STORAGE_TYPE` | Yes | Storage type: "fileshare" or "blob" (default: fileshare) |
+|| `AZURE_STORAGE_ACCOUNT_NAME` | Yes* | Azure Storage account name |
+|| `AZURE_STORAGE_ACCOUNT_KEY` | Yes* | Azure Storage account access key |
+|| `AZURE_STORAGE_CONNECTION_STRING` | Yes* | Alternative to account name/key |
+|| `AZURE_STORAGE_FILE_SHARE_NAME` | Conditional** | Name of the file share (required if STORAGE_TYPE=fileshare) |
+|| `AZURE_STORAGE_CONTAINER_NAME` | Conditional** | Name of the blob container (required if STORAGE_TYPE=blob) |
+|| `ROOT_FOLDER` | No | Start browsing from specific subfolder/prefix |
+|| `PORT` | No | Server port (default: 3000) |
+|| `NODE_ENV` | No | Environment (development/production) |
+|| `RATE_LIMIT_WINDOW_MS` | No | Rate limiting window (default: 15min) |
+|| `RATE_LIMIT_MAX_REQUESTS` | No | Max requests per window (default: 100) |
 
 *Either use `AZURE_STORAGE_ACCOUNT_NAME` + `AZURE_STORAGE_ACCOUNT_KEY` OR `AZURE_STORAGE_CONNECTION_STRING`
+
+**Required based on STORAGE_TYPE setting
 
 ### Security Features
 

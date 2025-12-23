@@ -13,19 +13,38 @@ try {
 require('dotenv').config();
 
 const AzureStorageService = require('./lib/azureStorage');
+const AzureBlobStorageService = require('./lib/azureBlobStorage');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Determine storage type from environment
+const storageType = (process.env.STORAGE_TYPE || 'fileshare').toLowerCase();
+const validStorageTypes = ['fileshare', 'blob'];
+
+if (!validStorageTypes.includes(storageType)) {
+  console.error(`Invalid STORAGE_TYPE: ${storageType}. Must be 'fileshare' or 'blob'`);
+  process.exit(1);
+}
+
 // Initialize thumbnail cache (24 hour TTL)
 const thumbnailCache = new NodeCache({ stdTTL: 86400, checkperiod: 3600 });
 
-// Initialize Azure Storage Service
+// Initialize Azure Storage Service based on storage type
 let storageService;
+let storageServiceName;
 try {
-  storageService = new AzureStorageService();
+  if (storageType === 'blob') {
+    storageService = new AzureBlobStorageService();
+    storageServiceName = 'Azure Blob Storage';
+    console.log(`Initializing Azure Blob Storage (Container: ${process.env.AZURE_STORAGE_CONTAINER_NAME})`);
+  } else {
+    storageService = new AzureStorageService();
+    storageServiceName = 'Azure File Share';
+    console.log(`Initializing Azure File Share (Share: ${process.env.AZURE_STORAGE_FILE_SHARE_NAME})`);
+  }
 } catch (error) {
-  console.error('Failed to initialize Azure Storage Service:', error.message);
+  console.error(`Failed to initialize ${storageType === 'blob' ? 'Azure Blob Storage' : 'Azure File Share'} Service:`, error.message);
   process.exit(1);
 }
 
@@ -244,6 +263,8 @@ app.get('/api/health', async (req, res) => {
     res.json({ 
       status: 'ok', 
       azureConnection: isConnected,
+      storageType: storageType,
+      storageName: storageType === 'blob' ? process.env.AZURE_STORAGE_CONTAINER_NAME : process.env.AZURE_STORAGE_FILE_SHARE_NAME,
       rootFolder: storageService.rootFolder || null,
       timestamp: new Date().toISOString()
     });
@@ -251,6 +272,8 @@ app.get('/api/health', async (req, res) => {
     res.status(500).json({ 
       status: 'error', 
       azureConnection: false,
+      storageType: storageType,
+      storageName: storageType === 'blob' ? process.env.AZURE_STORAGE_CONTAINER_NAME : process.env.AZURE_STORAGE_FILE_SHARE_NAME,
       rootFolder: storageService.rootFolder || null,
       error: error.message,
       timestamp: new Date().toISOString()
