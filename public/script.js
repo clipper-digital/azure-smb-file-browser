@@ -515,6 +515,26 @@ const checkConnection = async () => {
         // Store root folder info
         rootFolder = data.rootFolder;
         
+        // Update page title and header based on storage type
+        if (data.storageType) {
+            const pageTitle = document.getElementById('pageTitle');
+            const pageHeader = document.getElementById('pageHeader');
+            const footerTitle = document.getElementById('footerTitle');
+            
+            let title;
+            if (data.storageType === 'blob') {
+                title = 'Azure Blob Browser';
+            } else if (data.storageType === 'fileshare') {
+                title = 'Azure File Share Browser';
+            } else {
+                title = 'Azure Storage Browser';
+            }
+            
+            if (pageTitle) pageTitle.textContent = title;
+            if (pageHeader) pageHeader.textContent = title;
+            if (footerTitle) footerTitle.textContent = title;
+        }
+        
         // Update root breadcrumb label
         if (elements.rootBreadcrumb && rootFolder) {
             elements.rootBreadcrumb.textContent = rootFolder.split('/').pop();

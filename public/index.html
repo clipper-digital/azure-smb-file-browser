@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azure SMB File Browser</title>
+    <title id="pageTitle">Azure Storage Browser</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -12,7 +12,7 @@
     <div class="container">
         <header class="header">
             <div class="header-content">
-                <h1><i class="fas fa-cloud"></i> Azure SMB File Browser</h1>
+                <h1><i class="fas fa-cloud"></i> <span id="pageHeader">Azure Storage Browser</span></h1>
                 <div class="connection-status" id="connectionStatus">
                     <span class="status-dot" id="statusDot"></span>
                     <span id="statusText">Checking connection...</span>
@@ -160,7 +160,7 @@
 
         <footer class="footer">
             <div class="footer-content">
-                <p>&copy; 2024 Azure SMB File Browser</p>
+                <p>&copy; 2024 <span id="footerTitle">Azure Storage Browser</span></p>
                 <div class="footer-stats">
                     <span id="itemCount">0 items</span>
                     <span class="separator">•</span>
