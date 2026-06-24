@@ -340,10 +340,7 @@ app.get('/api/browse', async (req, res) => {
       sizeFormatted: item.size ? formatFileSize(item.size) : null,
       lastModifiedFormatted: item.lastModified 
         ? new Date(item.lastModified).toLocaleString() 
-        : 'Date unknown',
-      createdOnFormatted: item.createdOn 
-        ? new Date(item.createdOn).toLocaleString() 
-        : null
+        : 'Date unknown'
     }));
 
     const response = {
